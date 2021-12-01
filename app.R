@@ -487,6 +487,7 @@ server <- function(input, output, session) {
       } else {
         index(which(scenario() == index()) + 1)
       }
+      ### To Do: clear hints, clear feedback
     }
   )
   subsetQB <- reactiveVal(0)
@@ -572,52 +573,15 @@ server <- function(input, output, session) {
       })
     }
   )
-  # close block!!!!
   
-  # ### hintText ----
-  # lapply(1:nrow(subsetQB()), function(x) {
-  #   observeEvent( 
-  #     eventExpr = input[[paste0("hintQ", x)]], 
-  #     handlerExpr = {
-  #       shinyalert("Hints:", subsetQB()[x, "hint"])
-  #     })
-  # }) # !! close lapply 
+  ## Display of hint text ----
+  ### To Do
   
-  ### Answer checking ----
-  # !! lapply function ----
-  # lapply(1:nrow(subsetQB()), function(x) {
-  #   observeEvent(
-  #     eventExpr = input[[paste0("submitAnswer", x)]],
-  #     handlerExpr = {
-  #       if (is.null(input[[paste0("answersQ", x)]])) {
-  #         
-  #         output[[paste0("questionFeedback", x)]] <- renderUI({p("Please select an answer.")})
-  #         
-  #       } else {
-  #         
-  #         output[[paste0("questionFeedback", x)]] <- renderIcon(
-  #           icon = ifelse(
-  #             test = input[[paste0("answersQ", x)]] == subsetQB()[x, "answer"],
-  #             yes = "correct",
-  #             no = "incorrect"
-  #           ),
-  #           width = 48
-  #         )
-  #         if (input[[paste0("answersQ", x)]] == subsetQB()[x, "answer"]) {
-  #           actionPoints(actionPoints() + 1)
-  #         }
-  #         updateButton(
-  #           session = session,
-  #           inputId = paste0("submitAnswer", x),
-  #           disabled = TRUE
-  #         )
-  #       }
-  #     },
-  #     ignoreNULL = FALSE,
-  #     ignoreInit = TRUE
-  #   )
-  #   
-  # }) # !! close lapply 
+  
+  ## Answer checking ----
+  ### To do
+  
+
   
   ## Reset Button for all ----
   observeEvent(
