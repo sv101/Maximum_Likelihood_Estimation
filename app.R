@@ -461,138 +461,163 @@ server <- function(input, output, session) {
   
   # create shuffled index vector: 
   scenario <- reactiveVal(
-    sample(x = 1:max(unique(questionBank$Index)), size = max(unique(questionBank$Index)), replace = F)
+    sample(x = 1:max(questionBank$Index), size = max(questionBank$Index), replace = F)
   )
+  index <- reactiveVal(0)
   
-  # get current index:
-  # reactive: Error in is_quosure(x) : argument "x" is missing, with no default.
-  # reactiveVal: Error : Operation not allowed without an active reactive context.
-  # You tried to do something that can only be done from inside a reactive consumer.
-  index <- reactiveVal(  
-    scenario()[1]
+  observeEvent(
+    eventExpr = input$pages,
+    handlerExpr = {
+      if (input$pages == "game" && !gameInProgress()) {
+        index(scenario()[1])
+        gameInProgress(TRUE)
+      }
+    }
   )
   
   ### new scenario button ----
   observeEvent(
-    if (which(scenario() == index()) == length(scenario())){
-      index(which(scenario() == index()) + 1)
-    }else{
-      index(scenario()[1])
+    eventExpr = input$nextQuestion,
+    handlerExpr = {
+      if (which(scenario() == index()) == length(scenario())) {
+        scenario(
+          sample(x = 1:max(questionBank$Index), size = max(questionBank$Index), replace = F)
+        )
+        index(scenario()[1])
+      } else {
+        index(which(scenario() == index()) + 1)
+      }
     }
   )
+  subsetQB <- reactiveVal(0)
   
   ### questionAnswer block----
   observeEvent(
     eventExpr = index(),
     handlerExpr = {
-      
       # subset questions:
-      subsetQB <- reactiveVal(
-        questionBank[which(questionBank$Index == index()),]
-      )
+      subsetQB(questionBank[which(questionBank$Index == index()), ])
       output$questionAnswer <- renderUI({
-        tagList(
-          h4('scenario'),
-          withMathJax(p(subsetQB()[1,'scenario'])),
-          
-          lapply(x = 1:nrow(subsetQB()), function(x){
+        if (index() > 0 && nrow(subsetQB()) > 0) {
+          tagList(
+            h4('Scenario'),
+            withMathJax(p(subsetQB()[1,'scenario'])),
             
-            #### display questions ----
-            h4(paste('Question ', x))
-            withMathJax(p(subsetQB()[1,'question']))
-            
-            radioGroupButtons(
-              inputId = paste0("answersQ",i),
-              label = "Choose your answer",
-              choices = subsetQB()[x, LETTERS[1:subsetQB()[x,'optionCount']]],
-              selected = character(0),
-              size = "lg",
-              direction = "vertical",
-              individual = FALSE,
-              checkIcon = list(
-                yes = icon("check-square"),
-                no = icon("square-o")
-              ),
-              status = "game"
-            )
-            
-            #### hint button ----
-            useShinyalert()
-            actionButton(inputId = paste0("hintQ",x), 
-                         label = "Get Hints", 
-                         icon = NULL, 
-                         width = NULL
-            )
-            
-            #### submitAnswer button ----
-            fluidRow(
-              column(
-                width = 2,
-                offset = 0,
-                bsButton(
-                  inputId = paste0("submitAnswer",x),
-                  label = "Submit Answer",
-                  style = "success",
-                  size = "large"
+            lapply(
+              X = 1:nrow(subsetQB()),
+              FUN = function(x){
+                #### display questions ----
+                tagList(
+                  h4(paste('Question ', x)),
+                  withMathJax(p(subsetQB()[x, 'question'])),
+                  radioGroupButtons(
+                    inputId = paste0("answer-", x),
+                    label = "Choose your answer",
+                    choices = as.vector(
+                      as.matrix(
+                        subsetQB()[x, LETTERS[1:subsetQB()[x,'optionCount']]]
+                      )
+                    ),
+                    selected = character(0),
+                    size = "lg",
+                    direction = "vertical",
+                    individual = FALSE,
+                    checkIcon = list(
+                      yes = icon("check-square"),
+                      no = icon("square-o")
+                    ),
+                    status = "game"
+                  ),
+                  #### hint button ----
+                  fluidRow(
+                    column(
+                      width = 2,
+                      bsButton(
+                        inputId = paste0("showHint-", x), 
+                        label = "Show hint", 
+                        icon = NULL, 
+                        size = "large"
+                      )
+                    ),
+                    column(
+                      width = 10,
+                      uiOutput(paste0("hintText-", x))
+                    )
+                  )
+                  ,
+                  #### submitAnswer button ----
+                  fluidRow(
+                    column(
+                      width = 2,
+                      offset = 0,
+                      bsButton(
+                        inputId = paste0("submit-", x),
+                        label = "Submit answer",
+                        style = "success",
+                        size = "large"
+                      )
+                    ),
+                    column(
+                      width = 10,
+                      offset = 0,
+                      uiOutput(paste0("questionFeedback-", x))
+                    )
+                  ),
+                  br()
                 )
-              ),
-              column(
-                width = 10,
-                offset = 0,
-                uiOutput(paste0("questionFeedback",x))
-              )
+              }
             )
-          }) 
-        )  
+          )   
+        }
       })
     }
   )
   # close block!!!!
   
-  ### hintText ----
-  lapply(1:nrow(subsetQB()), function(x) {
-    observeEvent( 
-      eventExpr = input[[paste0("hintQ", x)]], 
-      handlerExpr = {
-        shinyalert("Hints:", subsetQB()[x, "hint"])
-      })
-  }) # !! close lapply 
+  # ### hintText ----
+  # lapply(1:nrow(subsetQB()), function(x) {
+  #   observeEvent( 
+  #     eventExpr = input[[paste0("hintQ", x)]], 
+  #     handlerExpr = {
+  #       shinyalert("Hints:", subsetQB()[x, "hint"])
+  #     })
+  # }) # !! close lapply 
   
   ### Answer checking ----
   # !! lapply function ----
-  lapply(1:nrow(subsetQB()), function(x) {
-    observeEvent(
-      eventExpr = input[[paste0("submitAnswer", x)]],
-      handlerExpr = {
-        if (is.null(input[[paste0("answersQ", x)]])) {
-          
-          output[[paste0("questionFeedback", x)]] <- renderUI({p("Please select an answer.")})
-          
-        } else {
-          
-          output[[paste0("questionFeedback", x)]] <- renderIcon(
-            icon = ifelse(
-              test = input[[paste0("answersQ", x)]] == subsetQB()[x, "answer"],
-              yes = "correct",
-              no = "incorrect"
-            ),
-            width = 48
-          )
-          if (input[[paste0("answersQ", x)]] == subsetQB()[x, "answer"]) {
-            actionPoints(actionPoints() + 1)
-          }
-          updateButton(
-            session = session,
-            inputId = paste0("submitAnswer", x),
-            disabled = TRUE
-          )
-        }
-      },
-      ignoreNULL = FALSE,
-      ignoreInit = TRUE
-    )
-    
-  }) # !! close lapply 
+  # lapply(1:nrow(subsetQB()), function(x) {
+  #   observeEvent(
+  #     eventExpr = input[[paste0("submitAnswer", x)]],
+  #     handlerExpr = {
+  #       if (is.null(input[[paste0("answersQ", x)]])) {
+  #         
+  #         output[[paste0("questionFeedback", x)]] <- renderUI({p("Please select an answer.")})
+  #         
+  #       } else {
+  #         
+  #         output[[paste0("questionFeedback", x)]] <- renderIcon(
+  #           icon = ifelse(
+  #             test = input[[paste0("answersQ", x)]] == subsetQB()[x, "answer"],
+  #             yes = "correct",
+  #             no = "incorrect"
+  #           ),
+  #           width = 48
+  #         )
+  #         if (input[[paste0("answersQ", x)]] == subsetQB()[x, "answer"]) {
+  #           actionPoints(actionPoints() + 1)
+  #         }
+  #         updateButton(
+  #           session = session,
+  #           inputId = paste0("submitAnswer", x),
+  #           disabled = TRUE
+  #         )
+  #       }
+  #     },
+  #     ignoreNULL = FALSE,
+  #     ignoreInit = TRUE
+  #   )
+  #   
+  # }) # !! close lapply 
   
   ## Reset Button for all ----
   observeEvent(
