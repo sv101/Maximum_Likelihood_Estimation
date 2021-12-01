@@ -463,13 +463,13 @@ server <- function(input, output, session) {
   scenario <- reactiveVal(
     sample(x = 1:max(questionBank$Index), size = max(questionBank$Index), replace = F)
   )
-  index <- reactiveVal(0)
   
+  index <- reactiveVal(0)
   observeEvent(
     eventExpr = input$pages,
     handlerExpr = {
       if (input$pages == "game" && !gameInProgress()) {
-        index(scenario()[1])
+        index(1)
         gameInProgress(TRUE)
       }
     }
@@ -479,13 +479,17 @@ server <- function(input, output, session) {
   observeEvent(
     eventExpr = input$nextQuestion,
     handlerExpr = {
-      if (which(scenario() == index()) == length(scenario())) {
+      if (index() == length(scenario())) {
         scenario(
-          sample(x = 1:max(questionBank$Index), size = max(questionBank$Index), replace = F)
+          sample(
+            x = 1:max(questionBank$Index),
+            size = max(questionBank$Index),
+            replace = FALSE
+          )
         )
-        index(scenario()[1])
+        index(1)
       } else {
-        index(which(scenario() == index()) + 1)
+        index(index() + 1)
       }
       ### To Do: clear hints, clear feedback
     }
@@ -497,7 +501,7 @@ server <- function(input, output, session) {
     eventExpr = index(),
     handlerExpr = {
       # subset questions:
-      subsetQB(questionBank[which(questionBank$Index == index()), ])
+      subsetQB(questionBank[which(questionBank$Index == scenario()[index()]), ])
       output$questionAnswer <- renderUI({
         if (index() > 0 && nrow(subsetQB()) > 0) {
           tagList(
@@ -591,11 +595,18 @@ server <- function(input, output, session) {
       actionPoints(1)
       backpackNew(NULL)
       
-      #### index change ----
-      index <- reactiveVal(
-        scenario()[1]
+      #### Shuffled scenarios ----
+      scenario(
+        sample(
+          x = 1:max(questionBank$Index),
+          size = max(questionBank$Index),
+          replace = FALSE
+        )
       )
+      #### index change ----
+      index(1)
       
+      #### Reset objects and places ----
       places <- objects$name[which(objects$assignable != "no")]
       places <- sample(places, length(places), replace = FALSE)
       mappings <- roomItems
