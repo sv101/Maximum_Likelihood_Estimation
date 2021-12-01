@@ -4,16 +4,14 @@ library(shinydashboard)
 library(shinyBS)
 library(shinyWidgets)
 library(boastUtils)
+library(shinyalert)
 
 # Load additional dependencies and setup functions ----
 source('coastal-room.R')
 
 # Load Data ----
 roomItems <- read.csv(file = "roomItems.csv", header = TRUE )
-arbitraryChoices <- list("A", "B", "C", "D")
 questionBank <- read.csv(file = "MLE_questions2.csv", header = TRUE)
-# convert questionBank to lists by "Index"
-A <- split(questionBank, questionBank$Index)
 
 # Define UI for App ----
 ui <- list(
@@ -174,54 +172,9 @@ ui <- list(
           hr(),
           h3("Earn Action Points"),
           p("Use the context to answer questions to earn more action points."),
-         
-           ##### Questions ----
-          h4("Scenario"),
-          uiOutput("scenario"),
           
-          # !! lapply function ----
-          lapply( 1:row_index, function(i) {
-                     tagList(
-            
-          h4(paste0("Question"," ", i)),
-          uiOutput(paste0("question",i)),
-          
-          radioGroupButtons(
-            inputId = paste0("answersQ",i),
-            label = "Choose your answer",
-            choices = arbitraryChoices,
-            selected = character(0),
-            size = "lg",
-            direction = "vertical",
-            individual = FALSE,
-            checkIcon = list(
-              yes = icon("check-square"),
-              no = icon("square-o")
-            ),
-            status = "game"
-          ),
-          
-          fluidRow(
-            column(
-              width = 2,
-              offset = 0,
-              bsButton(
-                inputId = paste0("submitAnswer",i),
-                label = "Submit Answer",
-                style = "success",
-                size = "large"
-              )
-            ),
-            column(
-              width = 10,
-              offset = 0,
-              uiOutput(paste0("questionFeedback",i))
-            )
-          ),
-          
-          br()
-          
-          )}), # !! close lapply 
+          ##### questionAnswer ----
+          uiOutput("questionAnswer"),
           
           br(),
           bsButton(
@@ -265,7 +218,7 @@ server <- function(input, output, session) {
       actionPoints(10)
     }
   )
-
+  
   ## Info button ----
   observeEvent(
     eventExpr = input$info,
@@ -278,7 +231,7 @@ server <- function(input, output, session) {
         type = "info"
       )
     })
-
+  
   ## Go button ----
   observeEvent(
     eventExpr = input$go,
@@ -289,14 +242,14 @@ server <- function(input, output, session) {
         selected = "game"
       )
     })
-
+  
   ## User/game reactive variables ----
   gameInProgress <- reactiveVal(FALSE)
   interactedList <- reactiveVal("start")
   actionPoints <- reactiveVal(1)
   backpackNew <- reactiveVal(NULL)
-
-
+  
+  
   ## Scene related tasks ----
   ### Hide items behind objects ----
   mapping <- reactiveVal({
@@ -310,7 +263,7 @@ server <- function(input, output, session) {
     }
     mappings
   })
-
+  
   ### Watch and report selected scene object ----
   observeEvent(
     eventExpr = input$object,
@@ -342,7 +295,7 @@ server <- function(input, output, session) {
     ignoreNULL = FALSE,
     ignoreInit = FALSE
   )
-
+  
   ### Interact with selected object ----
   observeEvent(
     eventExpr = input$interactObject,
@@ -427,7 +380,7 @@ server <- function(input, output, session) {
       }
     }
   )
-
+  
   ### Combine items ----
   observeEvent(
     eventExpr = input$combineItems,
@@ -459,7 +412,7 @@ server <- function(input, output, session) {
         key <- input$selectedItems[grepl("Key", input$selectedItems)]
         metalBox <- gsub(pattern = "Box", replacement = "", x = box)
         metalKey <- gsub(pattern = "Key", replacement = "", x = key)
-
+        
         if (length(box) != 0 & length(key) != 0 &
             (metalBox == "copper" | metalKey == "copper")) {
           newItem <- "none"
@@ -471,7 +424,7 @@ server <- function(input, output, session) {
         } else {
           newItem <- "none"
         }
-
+        
         if (grepl("Key", newItem)) {
           sendSweetAlert(
             session = session,
@@ -501,152 +454,159 @@ server <- function(input, output, session) {
       }
     }
   )
-
+  
   ## Earning action points and related tasks ----
-  ### Display questions ----
-  #### This only triggers the first time the game page is accessed
-  index <- reactiveVal(sample(x = unique(questionBank[,"Index"]), size = 1, replace = TRUE))
+  ### Question part ----
+  # This only triggers the first time the game page is accessed
   
-  B <- reactive({
-    data.frame(A[[index()]]
-    )})
-    
-  row_index <- isolate({nrow(B())})
+  # create shuffled index vector: 
+  scenario <- reactiveVal(
+    sample(x = 1:max(unique(questionBank$Index)), size = max(unique(questionBank$Index)), replace = F)
+  )
   
-  observeEvent( 
-    eventExpr = input$pages,
-    handlerExpr = {
-      if (input$pages == "game" && !gameInProgress()) {
-        
-        output$scenario <- renderUI({
-          p(B[1, "scenario"])
-          })
-        # !! lapply function ----
-        lapply(1:row_index, function(i) {
-          
-        output[[paste0("question", i)]] <- renderUI({
-          withMathJax(B[1 + (i-1) , "question"])
-        })
-        
-        updateRadioGroupButtons(
-          session = session,
-          inputId = paste0("answersQ", i),
-          
-          choices = list(
-            B[1 + (i-1), "A"],
-            B[1 + (i-1), "B"],
-            B[1 + (i-1), "C"],
-            B[1 + (i-1), "D"]
-          ),
-          
-          selected = character(0),
-          checkIcon = list(
-            yes = icon("check-square"),
-            no = icon("square-o")
-          ),
-          status = "game"
-        )
-        }) # !! close lapply 
-        
-        gameInProgress(TRUE)
-      }
-    })
+  # get current index:
+  # reactive: Error in is_quosure(x) : argument "x" is missing, with no default.
+  # reactiveVal: Error : Operation not allowed without an active reactive context.
+  # You tried to do something that can only be done from inside a reactive consumer.
+  index <- reactiveVal(  
+    scenario()[1]
+  )
   
-  ##### Display new questions and answers ----
+  ### new scenario button ----
   observeEvent(
-    eventExpr = input$nextQuestion,
+    if (which(scenario() == index()) == length(scenario())){
+      index(which(scenario() == index()) + 1)
+    }else{
+      index(scenario()[1])
+    }
+  )
+  
+  ### questionAnswer block----
+  observeEvent(
+    eventExpr = index(),
     handlerExpr = {
-      #### Need to rethink the randomization of indices
-      index(sample(x = unique(questionBank[,"Index"]), size = 1))
-      req(B())
       
-      output$scenario <- renderUI({p(B[1, "scenario"])})
-      
-      # !! lapply function ----
-      lapply(1:row_index, function(i) {
-        
-      output[[paste0("question", i)]] <- renderUI({
-        withMathJax(B[1 + (i-1), "question"])
+      # subset questions:
+      subsetQB <- reactiveVal(
+        questionBank[which(questionBank$Index == index()),]
+      )
+      output$questionAnswer <- renderUI({
+        tagList(
+          h4('scenario'),
+          withMathJax(p(subsetQB()[1,'scenario'])),
+          
+          lapply(x = 1:nrow(subsetQB()), function(x){
+            
+            #### display questions ----
+            h4(paste('Question ', x))
+            withMathJax(p(subsetQB()[1,'question']))
+            
+            radioGroupButtons(
+              inputId = paste0("answersQ",i),
+              label = "Choose your answer",
+              choices = subsetQB()[x, LETTERS[1:subsetQB()[x,'optionCount']]],
+              selected = character(0),
+              size = "lg",
+              direction = "vertical",
+              individual = FALSE,
+              checkIcon = list(
+                yes = icon("check-square"),
+                no = icon("square-o")
+              ),
+              status = "game"
+            )
+            
+            #### hint button ----
+            useShinyalert()
+            actionButton(inputId = paste0("hintQ",x), 
+                         label = "Get Hints", 
+                         icon = NULL, 
+                         width = NULL
+            )
+            
+            #### submitAnswer button ----
+            fluidRow(
+              column(
+                width = 2,
+                offset = 0,
+                bsButton(
+                  inputId = paste0("submitAnswer",x),
+                  label = "Submit Answer",
+                  style = "success",
+                  size = "large"
+                )
+              ),
+              column(
+                width = 10,
+                offset = 0,
+                uiOutput(paste0("questionFeedback",x))
+              )
+            )
+          }) 
+        )  
       })
-      updateRadioGroupButtons(
-        session = session,
-        inputId = paste0("answersQ", i),
-        choices = list(
-          B[1 + (i-1), "A"],
-          B[1 + (i-1), "B"],
-          B[1 + (i-1), "C"],
-          B[1 + (i-1), "D"]
-        ),
-        selected = character(0),
-        checkIcon = list(
-          yes = icon("check-square"),
-          no = icon("square-o")
-        ),
-        status = "game"
-      )
-      }) # !! close lapply 
-      
-      # !! lapply function ----
-      lapply(1:row_index, function(i) {
-      updateButton(
-        session = session,
-        inputId = paste0("submitAnswer", i),
-        disabled = FALSE
-      )
-      }) # !! close lapply 
-      
-      # !! lapply function ----
-      lapply(1:row_index, function(i) {
-      output[[paste0("questionFeedback", i)]] <- renderIcon()
-      }) # !! close lapply 
-    },
-    ignoreNULL = TRUE,
-    ignoreInit = TRUE
+    }
   )
+  # close block!!!!
   
-  ##### Answer checking ----
+  ### hintText ----
+  lapply(1:nrow(subsetQB()), function(x) {
+    observeEvent( 
+      eventExpr = input[[paste0("hintQ", x)]], 
+      handlerExpr = {
+        shinyalert("Hints:", subsetQB()[x, "hint"])
+      })
+  }) # !! close lapply 
+  
+  ### Answer checking ----
   # !! lapply function ----
-  lapply(1:row_index, function(i) {
-  observeEvent(
-    eventExpr = input[[paste0("submitAnswer", i)]],
-    handlerExpr = {
-      if (is.null(input[[paste0("answersQ", i)]])) {
-        output[[paste0("questionFeedback", i)]] <- renderUI({p("Please select an answer.")})
-      } else {
-        
-        output[[paste0("questionFeedback", i)]] <- renderIcon(
-          icon = ifelse(
-            test = input[[paste0("answersQ", i)]] == B[1 + (i-1), "answer"],
-            yes = "correct",
-            no = "incorrect"
-          ),
-          width = 48
-        )
-        if (input[[paste0("answersQ", i)]] == B[1 + (i-1), "answer"]) {
-          actionPoints(actionPoints() + 1)
+  lapply(1:nrow(subsetQB()), function(x) {
+    observeEvent(
+      eventExpr = input[[paste0("submitAnswer", x)]],
+      handlerExpr = {
+        if (is.null(input[[paste0("answersQ", x)]])) {
+          
+          output[[paste0("questionFeedback", x)]] <- renderUI({p("Please select an answer.")})
+          
+        } else {
+          
+          output[[paste0("questionFeedback", x)]] <- renderIcon(
+            icon = ifelse(
+              test = input[[paste0("answersQ", x)]] == subsetQB()[x, "answer"],
+              yes = "correct",
+              no = "incorrect"
+            ),
+            width = 48
+          )
+          if (input[[paste0("answersQ", x)]] == subsetQB()[x, "answer"]) {
+            actionPoints(actionPoints() + 1)
+          }
+          updateButton(
+            session = session,
+            inputId = paste0("submitAnswer", x),
+            disabled = TRUE
+          )
         }
-        updateButton(
-          session = session,
-          inputId = paste0("submitAnswer", i),
-          disabled = TRUE
-        )
-      }
-    },
-    ignoreNULL = FALSE,
-    ignoreInit = TRUE
-  )
+      },
+      ignoreNULL = FALSE,
+      ignoreInit = TRUE
+    )
     
   }) # !! close lapply 
   
-  ## Reset Button ----
+  ## Reset Button for all ----
   observeEvent(
     eventExpr = input$resetGame,
     handlerExpr = {
       interactedList("start")
       actionPoints(1)
       backpackNew(NULL)
-      # index change ----
-      index(sample(x = unique(questionBank[,"Index"]), size = 1, replace = TRUE))
+      
+      #### index change ----
+      index <- reactiveVal(
+        scenario()[1]
+      )
+      
       places <- objects$name[which(objects$assignable != "no")]
       places <- sample(places, length(places), replace = FALSE)
       mappings <- roomItems
@@ -679,21 +639,21 @@ server <- function(input, output, session) {
       )
     }
   )
-
+  
   ## Display Elements ----
   ### Display remaining action points ----
   output$actionPointReport <- renderUI({
     paste("You have", actionPoints(), "action point(s) remaining.")
   })
-
+  
   ### Display backpack contents ----
   output$backpackContents <- renderUI({
     paste(backpackNew(), collapse = ", ")
   })
-
+  
   ### Code for Re-rendering mathematics ----
   typesetMath(session = session)
-
+  
 }
 
 # Boast App Call ----
