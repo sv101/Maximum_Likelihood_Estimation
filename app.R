@@ -230,36 +230,8 @@ ui <- list(
                         value = 1,
                         step = 2
                       ) #end tab of sliderInput
-                    ) #end of conditionalPanel
-                  )
-                  
-                ), #end of column
-                
-                column(
-                  width = 8,
-                  offset = 0,
-                  # conditional plots
-                  conditionalPanel(
-                    condition = ("input.distribution == 'Poisson Distribution'"),
-                    p("Poisson Distribution",style = "text-align: center"),
-                    plotOutput("poisson", width = "60%")
-                  ) #end of conditionalPanel
-                )
-              ),
-                  
-                  ### Poisson Distribution ----
-            
-              fluidRow(
-                column(
-                  width = 4,
-                  wellPanel(
-                    selectInput(
-                      inputId = "distribution",
-                      label = "Choose distribution: ",
-                      choices = c("Poisson Distribution", "Exponential Distribution")
-                    ), #end of selectInput
+                    ), #end of conditionalPanel
                     
-                    #conditional controls
                     conditionalPanel(
                       condition = ("input.distribution == 'Exponential Distribution'"),
                       sliderInput(
@@ -288,13 +260,15 @@ ui <- list(
                   offset = 0,
                   # conditional plots
                   conditionalPanel(
-                    condition = ("input.distribution == 'Exponential Distribution'"),
+                    condition = ("input.distribution == 'Poisson Distribution'"),
                     p("Poisson Distribution",style = "text-align: center"),
                     plotOutput("poisson", width = "60%")
                   ) #end of conditionalPanel
                 )
               ),
-              
+                  
+                  ### Poisson Distribution ----
+            
               
                 
                 ### Exponential Distribution ----
@@ -348,22 +322,12 @@ ui <- list(
                   p("Gamme Distribution",style = "text-align: center"),
                   plotOutput("", width = "60%")
                 ) #end of conditionalPanel
-              )
+              ) # end of fluidrow
             )
             
             )
           ),
           
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
         #### Set up a Challenge Page ----
         tabItem(
