@@ -40,7 +40,8 @@ ui <- list(
                icon("home")
         )
       )
-    ),
+    ), #end of dashboardHeader
+    
     ### Create the sidebar/left navigation menu ----
     dashboardSidebar(
       sidebarMenu(
@@ -54,7 +55,8 @@ ui <- list(
         class = "sidebar-logo",
         boastUtils::sidebarFooter()
       )
-    ),
+    ), #end of dashboardSiderbar
+    
     ### Create the content ----
     dashboardBody(
       tabItems(
@@ -426,11 +428,11 @@ ui <- list(
           br(),
           br(),
           boastUtils::copyrightInfo()
-        )
-      )
-    )
-  )
-)
+        ) #end of tabItem
+      ) #end of tabItems
+    ) #end of dashBody
+  ) #end of dashBoardpage
+) #end of list
 
 # Define server logic ----
 server <- function(input, output, session) {
