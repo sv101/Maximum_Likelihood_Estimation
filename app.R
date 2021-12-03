@@ -251,7 +251,7 @@ ui <- list(
                         step = 2
                       ) #end tab of sliderInput
                     ) #end of conditionalPanel
-                  )
+                  ) #end of wellPanel
                   
                 ), #end of column
                 
@@ -262,17 +262,13 @@ ui <- list(
                   conditionalPanel(
                     condition = ("input.distribution == 'Poisson Distribution'"),
                     p("Poisson Distribution",style = "text-align: center"),
-                    plotOutput("poisson", width = "60%")
+                    plotOutput("poisson", width = "98%")
                   ) #end of conditionalPanel
-                )
-              ),
-                  
-                  ### Poisson Distribution ----
-            
+                ) #end of column
+              ) #fluidRow
+              ), #tabPanel
               
-                
-                ### Exponential Distribution ----
-                ),#end of tabpanel
+            ####### Two parameters ######
             
             tabPanel(
               title = "Two parameters",
@@ -286,7 +282,7 @@ ui <- list(
                          choices = c("Gamma Distribution")
                        ) #end of selectInput
                 )#end of column
-              ), 
+              ), #end of fluidRow
               
               fluidRow(
                 conditionalPanel(
@@ -323,10 +319,9 @@ ui <- list(
                   plotOutput("", width = "60%")
                 ) #end of conditionalPanel
               ) # end of fluidrow
-            )
-            
-            )
-          ),
+            ) #end of tabPanel
+          ) #end of tabsetPanel
+          ), #end of tabItem
           
         
         #### Set up a Challenge Page ----
