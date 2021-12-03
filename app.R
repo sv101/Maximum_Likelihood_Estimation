@@ -13,7 +13,9 @@ library(dplyr)
 library(ggpmisc)
 library(EnvStats)
 library(lattice)
-library(rgl) # you'll need to install this package
+library(rgl)
+library(rsm)
+library(fields)
 
 # Load additional dependencies and setup functions
 # source("global.R")
@@ -43,12 +45,9 @@ ui <- list(
     dashboardSidebar(
       sidebarMenu(
         id = "pages",
-        menuItem("Overview", tabName = "overview", icon = icon("dashboard")),
+        menuItem("Overview", tabName = "overview", icon = icon("tachometer-alt")),
         menuItem("Prerequisites", tabName = "prerequisites", icon = icon("book")),
         menuItem("Explore", tabName = "explore", icon = icon("wpexplorer")),
-        #menuItem("Challenge", tabName = "challenge", icon = icon("gears")),
-        menuItem("Game", tabName = "game", icon = icon("gamepad")),
-        #menuItem("Wizard", tabName = "wizard", icon = icon("hat-wizard")),
         menuItem("References", tabName = "references", icon = icon("leanpub"))
       ),
       tags$div(
@@ -63,7 +62,7 @@ ui <- list(
         tabItem(
           tabName = "overview",
           withMathJax(),
-          h1("Maximum Likelihood Estimation "), # This should be the full name.
+          h1("Maximum Likelihood Estimation "), 
           p("In this app you will explore the maximum likelihood estimation with some
             plots. You will also test your knowledge with the escape room game."),
           h2("Instructions"),
@@ -71,7 +70,6 @@ ui <- list(
           tags$ol(
             tags$li("Review any prerequiste ideas using the Prerequistes tab."),
             tags$li("Explore the Exploration Tab."),
-            #tags$li("Challenge yourself."),
             tags$li("Play the escape room game to test how far you've come.")
           ),
           ##### Go Button--location will depend on your goals ----
@@ -85,13 +83,13 @@ ui <- list(
               style = "default"
             )
           ),
-          ##### Create two lines of space ----
           br(),
           br(),
           h2("Acknowledgements"),
           p(
             "This version of the app was developed and coded by Neil J.
-            Hatfield  and Robert P. Carey, III.",
+            Hatfield and Robert P. Carey, III, updated in 2021 by Jiayue
+            He and Yudan Zhang",
             br(),
             "We would like to extend a special thanks to the Shiny Program
             Students.",
@@ -101,7 +99,8 @@ ui <- list(
             div(class = "updated", "Last Update: 5/19/2021 by NJH.")
           )
         ),
-        #### Set up the Prerequisites Page ----
+        
+        #### Prerequisites Page ----
         tabItem(
           tabName = "prerequisites",
           withMathJax(),
@@ -112,18 +111,19 @@ ui <- list(
             title = strong("What is maximum likelihood estimation?"),
             status = "primary",
             collapsible = TRUE,
-            collapsed = TRUE,
+            collapsed = FALSE,
             width = '100%',
             "Maximum likelihood estimation is a statistical method for
             estimating the parameters of a model. The parameter values are found
-            such that they maximise the likelihood that the process described
+            such that they maximize the likelihood that the process described
             by the model produced the data that were actually observed."
           ),
+          
           box(
             title = strong("Simple MLE Procedure"),
             status = "primary",
             collapsible = TRUE,
-            collapsed = TRUE,
+            collapsed = FALSE,
             width = '100%',
             tags$ol(
               tags$li("An independent and identically distributed sample of data:
@@ -142,11 +142,12 @@ ui <- list(
                       maximizes the function.")
             )
           ),
+          
           box(
             title = strong("Invariance Property"),
             status = "primary",
             collapsible = TRUE,
-            collapsed = TRUE,
+            collapsed = FALSE,
             width = '100%',
             p(strong("Theorem: "), "If \\(\\widehat{\\theta}\\) is the maximum likelihood estimator of
               \\(\\theta\\) and \\(f\\) is a function, then
@@ -154,11 +155,12 @@ ui <- list(
               \\(f(\\theta)\\).")
             #p("then \\(f(\\hat \\theta\\)) is a maximum likelihood estimator of \\(f(\\theta\\))")
           ),
+          
           box(
             title = strong("Large Sample Property"),
             status = "primary",
             collapsible = TRUE,
-            collapsed = TRUE,
+            collapsed = FALSE,
             width = '100%',
             p("Asymptotic Normality:"),
             p("Let \\(\\ {Y_1,Y_2,...,Y_n} \\) be a sequence of i.i.d observations where"),
@@ -167,6 +169,7 @@ ui <- list(
             p("\\(\\hat \\theta\\) is the MLE of \\(\\theta\\), then"),
             p("$$ \\sqrt n\\ (\\hat \\theta\\ - \\theta) \\rightarrow \\ N(0,{1\\over I(\\theta)})$$")
           ),
+          br(),
           div(
             style = "text-align: center",
             bsButton(
@@ -178,212 +181,190 @@ ui <- list(
             )
           )
         ),
-        #### Set up the Explore Page ----
+        
+
+        ### Explore Page ----
         tabItem(
           tabName = "explore",
           withMathJax(),
-          h2("You MUST bring this page into compliance with the Style Guide!"),
-          #h2("Explore the Concept"),
-          #p("Common elements include graphs, sliders, buttons, etc."),
-          #p("The following comes from the NHST Caveats App:"),
+          h2("Explore Maximum Likelihood Estimation with interactive plots!"),
+          h4(tags$li("Adjust the sliders to change the sample size
+                                   and corresponding parameters.")),
+          h4(tags$li("Click 'New Sample' button to generate plot.")),
+          br(),
+          
           tabsetPanel(
             id = "exp",
+            
             ### One Parameter Tab ----
             tabPanel(
-              title = 'One parameter',
+              title = 'One Parameter',
               br(),
-              h4(strong("One parameter")),
-              h6(tags$li("Adjust the sliders to change the sample size
-                                   and corresponding parameters.")),
-              h6(tags$li("Click 'New Sample' button to generate plot.")),
-              br(),
-              #width = 25
-              sidebarLayout(
-                sidebarPanel(
-                  selectInput(
-                    inputId = "distribution",
-                    label = "Choose distribution: ",
-                    choices = c("Poisson Distribution", "Exponential Distribution")
-                  ),
-
-                  checkboxInput(inputId = "checkbox1",
-                                label = "Show the data table",
-                                value = FALSE),
-
-
+              
+              fluidRow(
+                column(
+                  width = 4,
+                  wellPanel(
+                    selectInput(
+                      inputId = "distribution",
+                      label = "Choose distribution: ",
+                      choices = c("Poisson Distribution", "Exponential Distribution")
+                    ), #end of selectInput
+                    
+                    #conditional controls
+                    conditionalPanel(
+                      condition = ("input.distribution == 'Poisson Distribution'"),
+                      sliderInput(
+                        inputId = "n1",
+                        label = "Choose Sample Size: ",
+                        min = 0,
+                        max = 200,
+                        value = 10,
+                        step = 2
+                      ), #end of selectInput
+                      sliderInput(
+                        inputId = "l1",
+                        label = "Choose true parameter value for Poisson: \\(\\lambda\\) ",
+                        min = 0,
+                        max = 100,
+                        value = 1,
+                        step = 2
+                      ) #end tab of sliderInput
+                    ) #end of conditionalPanel
+                  )
+                  
+                ), #end of column
+                
+                column(
+                  width = 8,
+                  offset = 0,
+                  # conditional plots
                   conditionalPanel(
                     condition = ("input.distribution == 'Poisson Distribution'"),
-
-                    sliderInput(
-                      inputId = "n1",
-                      label = "Choose Sample Size: ",
-                      min = 0,
-                      max = 200,
-                      value = 10,
-                      step = 2
-                    ), #end tab of sidebarInput
-
-                    sliderInput(
-                      inputId = "l1",
-                      label = "Choose true parameter value for Poisson: \\(\\lambda\\) ",
-                      min = 0,
-                      max = 100,
-                      value = 1,
-                      step = 2
-                    )#end tab of sidebarInput
-
-                  ),
-
-
+                    p("Poisson Distribution",style = "text-align: center"),
+                    plotOutput("poisson", width = "60%")
+                  ) #end of conditionalPanel
+                )
+              ),
+                  
+                  ### Poisson Distribution ----
+            
+              fluidRow(
+                column(
+                  width = 4,
+                  wellPanel(
+                    selectInput(
+                      inputId = "distribution",
+                      label = "Choose distribution: ",
+                      choices = c("Poisson Distribution", "Exponential Distribution")
+                    ), #end of selectInput
+                    
+                    #conditional controls
+                    conditionalPanel(
+                      condition = ("input.distribution == 'Exponential Distribution'"),
+                      sliderInput(
+                        inputId = "n2",
+                        label = "Choose Sample Size: ",
+                        min = 0,
+                        max = 200,
+                        value = 10,
+                        step = 2
+                      ), #end of selectInput
+                      sliderInput(
+                        inputId = "l2",
+                        label = "Choose true parameter value for Exponential: \\(\\lambda\\) ",
+                        min = 0,
+                        max = 100,
+                        value = 1,
+                        step = 2
+                      ) #end tab of sliderInput
+                    ) #end of conditionalPanel
+                  )
+                  
+                ), #end of column
+                
+                column(
+                  width = 8,
+                  offset = 0,
+                  # conditional plots
                   conditionalPanel(
                     condition = ("input.distribution == 'Exponential Distribution'"),
-
-                    sliderInput(
-                      inputId = "n2",
-                      label = "Choose Sample Size: ",
-                      min = 0,
-                      max = 200,
-                      value = 10,
-                      step = 2
-                    ), #end tab of sidebarInput
-
-                    sliderInput(
-                      inputId = "l2",
-                      label = "Choose true parameter value for Exponential: \\(\\lambda\\)",
-                      min = 0,
-                      max = 5,
-                      value = 0.1,
-                      step = 0.1
-                    ) #end tab of sidebarInput
-                  ),
-
-
-                  br()
-                ),#end tab of sidebarPanel
-
-                fluidRow(column(width = 7,
-                                fluidRow(
-                                  conditionalPanel(
-                                    condition = "input.distribution == 'Poisson Distribution",
-                                    fluidRow(
-                                      column(12, plotOutput("poissonplot",width = "98%")#plotlyOutput
-                                      ), #Green for true, black for estimate
-                                      br(),
-                                      column(12, tableOutput("diffValues"))
-                                    )
-                                  ),
-                                  conditionalPanel(
-                                    condition = "input.distribution == 'Exponential Distribution",
-                                    fluidRow(
-                                      column(12, plotOutput("expplot",width = "98%")#plotlyOutput
-                                      ), #Green for true, black for estimate
-                                      br(),
-                                      column(12, tableOutput("diffValues2"))
-                                    )
-                                  )
-
-                                ))) #end of fluid page
-              ),
-              hr(),
-              h3("Example Plot Code"),
-              plotOutput("neilDemo1")
-            ),
-            ### Two parameter tab ----
-            tabPanel(
-              title = 'Two parameters',
-              br(),
-              h4(strong("Two parameters")),
-              h6(tags$li("Adjust the sliders to change the sample size
-                                   and corresponding parameters.")),
-              h6(tags$li("Click 'New Sample' button to generate plot.")),
-              br(),
-
-              sidebarLayout(
-                sidebarPanel(
-                  selectInput(
-                    inputId = "distribution1",
-                    label = "Choose distribution: ",
-                    choices = c("Gamma Distribution", "Multinomial Distribution")
-                  ),
-
-                  checkboxInput(inputId = "checkbox2",
-                                label = list("Show the data table"),
-                                value = FALSE),
-
-                  conditionalPanel(
-                    condition = ("input.distribution == 'Gamma Distribution'"),
-                    sliderInput(
-                      inputId = "n3",
-                      label = "Choose Sample Size: ",
-                      min = 0,
-                      max = 200,
-                      value = 10,
-                      step = 2
-                    ), #end tab of sidebarInput
-
-                    sliderInput(
-                      inputId = "a3",
-                      label = "Choose true parameter value for Gamma: \\(\\alpha\\) (Shape) ",
-                      min = 1,
-                      max = 20,
-                      value = 1,
-                      step = 0.5
-                    ),#end tab of sidebarInput
-
-                    sliderInput(
-                      inputId = "b3",
-                      label = "Choose true parameter value for Gamma: \\(\\beta\\) (Rate)",
-                      min = 0,
-                      max = 20,
-                      value = 1,
-                      step = 0.1
-                    )#end tab of sidebarInput
-                  )
-
-                ),#end tab of sidebarPanel
-                fluidRow(column(width = 7,
-                                fluidRow(
-                                  conditionalPanel(
-                                    condition = "input.distribution == 'Gamma Distribution",
-                                    fluidRow(
-                                      #column(12, plotOutput("poissonplot",width = "98%")#plotlyOutput
-                                      #), #Green for true, black for estimate
-                                      #br(),
-                                      #column(12, tableOutput("table3")),
-                                      #br(),
-                                      column(12, plotOutput("gamma_plot", height = 600)#plotlyOutput
-                                      )
-                                    )
-                                  )
-
-                                ))) #end of fluid page
-              ),
-              h3("Example Plot-RGL"),
-              rglwidgetOutput("neilDemo2"),
-              br(),
-              br(),
-              br(),
-              br(),
-              br(),
-              div(
-                style = "text-align: center",
-                bsButton(
-                  inputId = "go3",
-                  label = "Play !",
-                  size = "large",
-                  icon = icon("bolt"),
-                  style = "default"
+                    p("Poisson Distribution",style = "text-align: center"),
+                    plotOutput("poisson", width = "60%")
+                  ) #end of conditionalPanel
                 )
+              ),
+              
+              
+                
+                ### Exponential Distribution ----
+                ),#end of tabpanel
+            
+            tabPanel(
+              title = "Two parameters",
+              br(),
+              
+              fluidRow(
+                column(width = 6,
+                       selectInput(
+                         inputId = "distribution1",
+                         label = "Choose distribution: ",
+                         choices = c("Gamma Distribution")
+                       ) #end of selectInput
+                )#end of column
+              ), 
+              
+              fluidRow(
+                conditionalPanel(
+                  condition = ("input.distribution1 == 'Gamma Distribution'"),
+                  column(width = 6,
+                         sliderInput(
+                           inputId = "n3",
+                           label = "Choose Sample Size: ",
+                           min = 0,
+                           max = 200,
+                           value = 10,
+                           step = 2
+                         ), #end of selectInput
+                         
+                         sliderInput(
+                           inputId = "a3",
+                           label = "Choose true parameter value for Gamma: \\(\\alpha\\) (Shape) ",
+                           min = 1,
+                           max = 20,
+                           value = 1,
+                           step = 0.5
+                         ),#end tab of sidebarInput
+                         
+                         sliderInput(
+                           inputId = "b3",
+                           label = "Choose true parameter value for Gamma: \\(\\beta\\) (Rate)",
+                           min = 0,
+                           max = 20,
+                           value = 1,
+                           step = 0.1
+                         )#end tab of sidebarInput
+                  ), #end of column
+                  p("Gamme Distribution",style = "text-align: center"),
+                  plotOutput("", width = "60%")
+                ) #end of conditionalPanel
               )
-
             )
-
-
+            
+            )
           ),
-          br(),
-          br(),
-          br()
-        ),
+          
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         #### Set up a Challenge Page ----
         tabItem(
           tabName = "challenge",
@@ -426,10 +407,61 @@ ui <- list(
           p("You'll need to fill in this page with all of the appropriate
             references for your app."),
           p(
+            class = "hangingindent", 
+            "Attali, D. (2020), shinyjs: Easily Improve the User Experience of 
+            Your Shiny Apps in Seconds, R package. Available from  
+            https://CRAN.R-project.org/package=shinyjs"
+          ), 
+          p(
             class = "hangingindent",
-            "Bailey, E. (2015). shinyBS: Twitter bootstrap components for shiny.
-            (v0.61). [R package]. Available from
-            https://CRAN.R-project.org/package=shinyBS"
+            "Bailey, E. (2015), shinyBS: Twitter bootstrap components for shiny, 
+            R package. Available from https://CRAN.R-project.org/package=shinyBS"
+          ),
+          p(
+            class = "hangingindent",
+            "Carey, R. (2019), boastUtils: BOAST Utilities. Available from
+            https://github.com/EducationShinyAppTeam/boastUtils"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W. and Borges Ribeio, B. (2018), shinydashboard: Create
+            dashboards with 'Shiny', R package. Available from
+            https://CRAN.R-project.org/package=shinydashboard"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W., Cheng, J., Allaire, J., Xie, Y., and McPherson, J.
+            (2019), shiny: Web application framework for R, R package. Available 
+            from https://CRAN.R-project.org/package=shiny"
+          ),
+          p(
+            class = "hangingindent", 
+            "Neudecker, A. (2019), shinyMatrix: Shiny Matrix Input Field, R 
+            package, R package. Available from 
+            https://CRAN.R-project.org/package=shinyMatrix"
+          ), 
+          p(
+            class = "hangingindent",
+            "Novomestky, F. (2012), matrixcalc: Collection of functions for 
+            matrix calculations., R package. Available from
+            https://CRAN.R-project.org/package=matrixcalc"
+          ),
+          p(
+            class = "hangingindent",
+            "Perrier, V., Meyer, F., and Granjon, D. (2020), shinyWidgets: Custom 
+            Inputs Widgets for Shiny, R package. Available from
+            https://CRAN.R-project.org/package=shinyWidgets"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H. and Lionel, H. (2020), tidyr: Tidy Messy Data, R package.
+            Available from https://CRAN.R-project.org/package=tidyr"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, W. (2016), ggplot2: Elegant graphics for data analysis,
+            R Package. Springer-Verlag New York. Available from
+            https://ggplot2.tidyverse.org"
           ),
           br(),
           br(),
@@ -440,7 +472,6 @@ ui <- list(
     )
   )
 )
-
 
 # Define server logic ----
 server <- function(input, output, session) {
@@ -476,7 +507,7 @@ server <- function(input, output, session) {
     updateTabItems(
       session = session,
       inputId = "pages",
-      selected = "game")
+      selected = "references")
   })
 
   observeEvent(input$go4,{
@@ -491,20 +522,20 @@ server <- function(input, output, session) {
   #loglikeliood of poisson
   #n represents sample size, l would be the lambda
 
-
-  #loglikelihood for poisson function
+  #log-likelihood for poisson function
   poissonLik <- function(lambda1,y1){
     n1 <- length(y1)
     logl <- (log(lambda1) * sum(y1)) - (n1 * lambda1) - sum(lfactorial(y1))
     #logl<- -(sum(y)*log(lambda)-n*lambda)
     #return(-logl)
   }
-
-  ## Example Plot using stat_function ----
-  output$neilDemo1 <- renderPlot(
+  
+  output$poisson <- renderPlot(
     expr = {
       y1 <- rpois(input$n1,input$l1)
       ggplot() +
+        #xlab("$\lambda")+
+        #ylab("Log_likelihood")+
         xlim(c(0,100)) +
         stat_function(
           fun = poissonLik,
@@ -523,210 +554,35 @@ server <- function(input, output, session) {
           size = 1,
           linetype = "dashed"
         ) +
-        theme_bw()
+        theme_bw() +
+        labs(x = "Lambda", y = "Log-likelihood")
     },
     alt = "Maximum Likelihood plot for Poisson"
   )
+  
+  ## Example Plot using stat_function ----
+
+  
+  ## Example Plot using stat_function ----
+
 
   #########Poisson distribution########
-  observeEvent(
-    eventExpr = c(as.numeric(input$n1), as.numeric(input$l1)),
-    handlerExpr = {
-      #lambda <- seq(1,100,length.out = input$n)
-      data1 <- data.table(
-        y1 = rpois(input$n1,input$l1),
-        lambda1 = seq(1, by = 2,length.out = input$n1)
-      )
 
-
-      lambda1 <- data1$lambda1
-      y1 <- data1$y1
-      est.l1 <- epois(y1)$parameters
-      str(est.l1)
-      #str(data)
-      #Logl <- poissonLik(data$lambda,data$y) #sapply
-      #m <- matrix(c("loglik", df))
-
-      Logl <- lapply(lambda1,FUN = poissonLik,y1)
-      Logl <- unlist(Logl) #delete the first row(sample size)
-      #print(Logl)
-
-      table1 <-  data.table(lambda1,Logl) #combine lambda and loglikihood value
-      #print(table)
-      #table <- as.data.frame(table)
-      #str(table)
-
-      #output$diffValues <- renderTable(
-        if (input$checkbox1 == "TRUE") {
-          output$diffValues <- renderTable(table1)
-        }
-
-      else if (input$checkbox1 == "FALSE") {
-        output$diffValues = NULL
-      }
-
-      if (input$distribution == 'Poisson Distribution') {
-        output$poissonplot <- renderPlot({
-          y_max <- table1$lambda1[which.max(table1$Logl)]
-          ggplot(table1, aes(x = lambda1, y = Logl)) +
-            geom_line(colour = "blue") +
-            xlab("lambda") + ylab("Log-likelihood") +
-            ggtitle("Log Likelihood Estimation for Poisson Distribution") +
-            geom_vline(xintercept = y_max, colour = "green", size = 0.8) +
-            geom_vline(xintercept = est.l1, colour = "black", size = 0.8)
-          #stat_peaks(col = "green")
-        })
-      }#end of if
-    }
-  )
 
   #########Exponential Distribution########
-  expoLik <- function(lambda2,y2){
-    n2 <- length(y2)
-    logl_exp <- (log(lambda2) * n2) - sum(y2) * lambda2
-  }
 
-  observeEvent(
-    eventExpr = c(as.numeric(input$n2), as.numeric(input$l2)),
-    handlerExpr = {
-      #lambda <- seq(1,100,length.out = input$n)
-      data2 <- data.table(
-        y2 = rexp(input$n2,input$l2),
-        lambda2 = seq(1, by = 0.5, length.out = input$n2)
-      )
-
-      lambda2 <- data2$lambda2
-      y2 <- data2$y2
-      est.l2 <- eexp(y2)$parameters
-      #str(data)
-      #Logl <- poissonLik(data$lambda,data$y) #sapply
-      #m <- matrix(c("loglik", df))
-
-      Logl_exp <- lapply(lambda2,FUN = expoLik, y2)
-      Logl_exp <- unlist(Logl_exp) #delete the first row(sample size)
-      #print(Logl)
-
-      table2 <-  data.table(lambda2,Logl_exp) #combine lambda and loglikihood value
-      #print(table)
-      #table <- as.data.frame(table)
-      #str(table)
-
-      #output$diffValues <- renderTable(
-      if (input$checkbox1 == "TRUE") {
-        output$diffValues2 <- renderTable(table2)
-      }
-
-      else if (input$checkbox1 == "FALSE") {
-        output$diffValues2 = NULL
-      }
-
-      if (input$distribution == 'Exponential Distribution') {
-        output$expplot <- renderPlot({
-          y_max <- table2$lambda2[which.max(table2$Logl_exp)]
-          ggplot(table2, aes(x = lambda2, y = Logl_exp)) +
-            geom_line(colour = "blue") +
-            ggtitle("Log Likelihood Estimation for Exponential Distribution") +
-            xlab("lambda") + ylab("Log-likelihood") +
-            geom_vline(xintercept = y_max, colour = "green", size = 0.8)+
-            geom_vline(xintercept = est.l2, colour = "black", size = 0.8)
-          #stat_peaks(col = "green")
-        })
-      }#end of if
-
-    }
-  )
 
   ########Gamma Distribution#########
   #Log likelihood function for Gamma Distribution
-  gamLik <- function(alpha, beta, x) {
-    n <- length(x)
-    alpha <- alpha
-    beta <- beta #seperate inputs
-    sum_x <- sum(x)
-    sum_logx <- sum(log(x))
-    Logl_gamma = vector("numeric", length(beta))
-    for (i in 1:length(beta)) {
-      Logl_gamma[i] = n * alpha[i] * log(beta[i]) + n * lgamma(alpha[i]) + sum_x / beta[i] - (alpha[i] - 1) * sum_logx
-    }
-    #lgamma() gives the natural logarithm of alpha function
-    return(-Logl_gamma)
-  }
+
+
 
   ## Example RGL plot ----
-  output$neilDemo2 <- renderRglwidget(
-    expr = {
-      sampleValues <- rgamma(input$n3, shape = input$a3, rate = input$b3)
-      alphas <- seq(0.01, 20, length = 40)
-      betas <- alphas
-      likelihoods <- outer(
-        X = alphas,
-        Y = betas,
-        FUN = gamLik,
-        x = sampleValues
-      )
-      persp3d(
-        x = alphas,
-        xlab = "alpha",
-        y = betas,
-        ylab = "beta",
-        z = likelihoods,
-        zlab = "Log likelihood",
-        col = "lightblue",
-        lit = FALSE
-      )
-      persp3d(
-        x = alphas,
-        y = betas,
-        z = likelihoods,
-        front = "lines",
-        back = "lines",
-        lit = FALSE,
-        add = TRUE)
-      rglwidget()
-    }
-  )
 
-  observeEvent(
-    eventExpr = c(as.numeric(input$n3), as.numeric(input$a3), as.numeric(input$b3)),
-    handlerExpr = {
-      data_gamma <- data.table(
-        x = rgamma(input$n3, shape = input$a3, rate = input$b3),
-        #rgamma() generate random sample for gamma distribution
-        alpha = seq(1, by = 0.5, length.out = input$n3), #generate
-        beta = seq(0, by = 0.1, length.out = input$n3)
-      ) #end of data.table
+      
+  
 
-      x <- data_gamma$x
-      alpha <- data_gamma$alpha
-      names(alpha) <- alpha
-      beta <- data_gamma$beta
-      names(beta) <- beta
-      est_gamma <- egamma(x)$parameters
 
-      Logl_gamma <- lapply(alpha, beta, FUN = gamLik, x)
-      Logl_gamma <- unlist(Logl_gamma)
-      str(Logl_gamma)
-
-      table_gamma <- data.table(alpha, beta, Logl_gamma)
-      str(table_gamma)
-
-      output$table3 <- renderTable(
-        if (input$checkbox2 == "TRUE") {
-          output$table3 <- renderTable(table_gamma)
-        }
-        else if (input$checkbox2 == "FALSE") {
-          output$table3 = NULL
-        }
-      )
-
-      output$gamma_plot <- renderPlot({
-        z <- outer(X = alpha, Y = beta, FUN = gamLik, x = x)
-        wireframe(z, drape = T, xlab = "alpha", ylab = "beta", zlab = "Log Likelihood",
-                  main = "Log-Likelihood for gamma distribution",
-                  scales = list(z.ticks=5, arrows=FALSE, col="black", font=3, tck=1))
-      })
-    }
-  )
 
 
   #else if (input$checkbox1 == "FALSE") {
