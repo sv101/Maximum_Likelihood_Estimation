@@ -13,6 +13,8 @@ source('coastal-room.R')
 roomItems <- read.csv(file = "roomItems.csv", header = TRUE )
 questionBank <- read.csv(file = "MLE_questions2.csv", header = TRUE)
 
+maxParts <- max(table(questionBank$Index))
+
 # Define UI for App ----
 ui <- list(
   ## Create the app page ----
@@ -172,10 +174,8 @@ ui <- list(
           hr(),
           h3("Earn Action Points"),
           p("Use the context to answer questions to earn more action points."),
-          
-          ##### questionAnswer ----
+          ##### Questions and Answers area ----
           uiOutput("questionAnswer"),
-          
           br(),
           bsButton(
             inputId = 'nextQuestion',
@@ -218,7 +218,7 @@ server <- function(input, output, session) {
       actionPoints(10)
     }
   )
-  
+
   ## Info button ----
   observeEvent(
     eventExpr = input$info,
@@ -231,7 +231,7 @@ server <- function(input, output, session) {
         type = "info"
       )
     })
-  
+
   ## Go button ----
   observeEvent(
     eventExpr = input$go,
@@ -242,14 +242,14 @@ server <- function(input, output, session) {
         selected = "game"
       )
     })
-  
+
   ## User/game reactive variables ----
   gameInProgress <- reactiveVal(FALSE)
   interactedList <- reactiveVal("start")
   actionPoints <- reactiveVal(1)
   backpackNew <- reactiveVal(NULL)
-  
-  
+
+
   ## Scene related tasks ----
   ### Hide items behind objects ----
   mapping <- reactiveVal({
@@ -263,7 +263,7 @@ server <- function(input, output, session) {
     }
     mappings
   })
-  
+
   ### Watch and report selected scene object ----
   observeEvent(
     eventExpr = input$object,
@@ -295,7 +295,7 @@ server <- function(input, output, session) {
     ignoreNULL = FALSE,
     ignoreInit = FALSE
   )
-  
+
   ### Interact with selected object ----
   observeEvent(
     eventExpr = input$interactObject,
@@ -380,7 +380,7 @@ server <- function(input, output, session) {
       }
     }
   )
-  
+
   ### Combine items ----
   observeEvent(
     eventExpr = input$combineItems,
@@ -412,7 +412,7 @@ server <- function(input, output, session) {
         key <- input$selectedItems[grepl("Key", input$selectedItems)]
         metalBox <- gsub(pattern = "Box", replacement = "", x = box)
         metalKey <- gsub(pattern = "Key", replacement = "", x = key)
-        
+
         if (length(box) != 0 & length(key) != 0 &
             (metalBox == "copper" | metalKey == "copper")) {
           newItem <- "none"
@@ -424,7 +424,7 @@ server <- function(input, output, session) {
         } else {
           newItem <- "none"
         }
-        
+
         if (grepl("Key", newItem)) {
           sendSweetAlert(
             session = session,
@@ -454,16 +454,16 @@ server <- function(input, output, session) {
       }
     }
   )
-  
+
   ## Earning action points and related tasks ----
   ### Question part ----
   # This only triggers the first time the game page is accessed
-  
-  # create shuffled index vector: 
+
+  # create shuffled index vector:
   scenario <- reactiveVal(
     sample(x = 1:max(questionBank$Index), size = max(questionBank$Index), replace = F)
   )
-  
+
   index <- reactiveVal(0)
   observeEvent(
     eventExpr = input$pages,
@@ -474,7 +474,7 @@ server <- function(input, output, session) {
       }
     }
   )
-  
+
   ### new scenario button ----
   observeEvent(
     eventExpr = input$nextQuestion,
@@ -495,7 +495,7 @@ server <- function(input, output, session) {
     }
   )
   subsetQB <- reactiveVal(0)
-  
+
   ### questionAnswer block----
   observeEvent(
     eventExpr = index(),
@@ -507,7 +507,6 @@ server <- function(input, output, session) {
           tagList(
             h4('Scenario'),
             withMathJax(p(subsetQB()[1,'scenario'])),
-            
             lapply(
               X = 1:nrow(subsetQB()),
               FUN = function(x){
@@ -538,10 +537,12 @@ server <- function(input, output, session) {
                     column(
                       width = 2,
                       bsButton(
-                        inputId = paste0("showHint-", x), 
-                        label = "Show hint", 
-                        icon = NULL, 
-                        size = "large"
+                        inputId = paste0("showHint-", x),
+                        label = "Show hint",
+                        icon = NULL,
+                        size = "large",
+                        type = "toggle",
+                        value = FALSE
                       )
                     ),
                     column(
@@ -572,21 +573,70 @@ server <- function(input, output, session) {
                 )
               }
             )
-          )   
+          )
         }
       })
     }
   )
-  
-  ## Display of hint text ----
-  ### To Do
-  
-  
-  ## Answer checking ----
-  ### To do
-  
 
-  
+  ## Display of hint text ----
+  sapply(
+    X = 1:maxParts,
+    FUN = function(x) {
+      observeEvent(
+        eventExpr = input[[paste0("showHint-", x)]],
+        handlerExpr = {
+          if (input[[paste0("showHint-", x)]]) {
+            output[[paste0("hintText-", x)]] <- renderUI(
+              withMathJax(p(subsetQB()[x, "hint"]))
+            )
+            updateButton(
+              session = session,
+              inputId = paste0("showHint-", x),
+              label = "Hide hint"
+            )
+          } else {
+            output[[paste0("hintText-", x)]] <- renderUI(NULL)
+            updateButton(
+              session = session,
+              inputId = paste0("showHint-", x),
+              label = "Show hint"
+            )
+          }
+        }
+      )
+    }
+  )
+
+  ## Answer checking ----
+  sapply(
+    X = 1:maxParts,
+    FUN = function(x) {
+      observeEvent(
+        eventExpr = input[[paste0("submit-", x)]],
+        handlerExpr = {
+          if (is.null(input[[paste0("answer-", x)]])) {
+            sendSweetAlert(
+              session = session,
+              title = "Select an Answer",
+              text = paste("You need to select answer for Question", x),
+              type = "warning"
+            )
+          } else {
+            output[[paste0("questionFeedback-", x)]] <- renderIcon(
+              icon = ifelse(
+                test = input[[paste0("answer-", x)]] == subsetQB()[x, "answer"],
+                yes = "correct",
+                no = "incorrect"
+              )
+            )
+          }
+        }
+      )
+    }
+  )
+
+
   ## Reset Button for all ----
   observeEvent(
     eventExpr = input$resetGame,
@@ -594,7 +644,7 @@ server <- function(input, output, session) {
       interactedList("start")
       actionPoints(1)
       backpackNew(NULL)
-      
+
       #### Shuffled scenarios ----
       scenario(
         sample(
@@ -605,7 +655,7 @@ server <- function(input, output, session) {
       )
       #### index change ----
       index(1)
-      
+
       #### Reset objects and places ----
       places <- objects$name[which(objects$assignable != "no")]
       places <- sample(places, length(places), replace = FALSE)
@@ -639,21 +689,21 @@ server <- function(input, output, session) {
       )
     }
   )
-  
+
   ## Display Elements ----
   ### Display remaining action points ----
   output$actionPointReport <- renderUI({
     paste("You have", actionPoints(), "action point(s) remaining.")
   })
-  
+
   ### Display backpack contents ----
   output$backpackContents <- renderUI({
     paste(backpackNew(), collapse = ", ")
   })
-  
+
   ### Code for Re-rendering mathematics ----
   typesetMath(session = session)
-  
+
 }
 
 # Boast App Call ----
