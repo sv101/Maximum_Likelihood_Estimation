@@ -103,9 +103,44 @@ ui <- list(
           tabName = "game",
           withMathJax(),
           h2("Escape from a Coastal Living Room"),
-          p("Answer questions (below) to earn action points to interact with
-            elements of the scene. Click on different parts of scene and then
-            press the Interact button."),
+          br(),
+          h4("Instruction"),
+          p("Please read the instructions for each part to start the game."),
+          box(
+            title = strong("Game Part"),
+            status = "primary",
+            collapsible = TRUE,
+            collapsed = FALSE,
+            width = '100%',
+            tags$ul(
+              tags$li("Use the action points get from the question part to interact 
+                      with the elements of the scene."), 
+              tags$li("Click on different elements and then press the Interact button."), 
+              tags$li("Use the Combine items button to combine the Key and Box found from elements
+                     to obtain the necessary items for escape. 
+                     Only two items allowed each time."),
+              tags$li("Person who finds the exit key will successfully escape.")
+            )
+          ),
+          box(
+            title = strong("Question Part"),
+            status = "primary",
+            collapsible = TRUE,
+            collapsed = FALSE,
+            width = '100%',
+            tags$ul(
+              tags$li("Use the questions below the scene to earn more action points."), 
+              tags$li("There will be several questions for each scenario.
+                     Read the scenario and question to select answer 
+                     and click the Submit answer button for check.
+                     Use the Show hint hutton to get hints for each question."), 
+              tags$li("Use the New Context and Questions button at the bottom 
+                     to get a new scenario when running out of questions."),
+              tags$li("One more action point for every correct answer, 
+                      no points will be deducted for wrong answers.")
+            )
+          ),
+          br(),
           bsButton(
             inputId = "debug",
             label = "debug",
@@ -461,7 +496,9 @@ server <- function(input, output, session) {
 
   # create shuffled index vector:
   scenario <- reactiveVal(
-    sample(x = 1:max(questionBank$Index), size = max(questionBank$Index), replace = F)
+    sample(x = 1:max(questionBank$Index), 
+           size = max(questionBank$Index), 
+           replace = F)
   )
 
   index <- reactiveVal(0)
@@ -491,7 +528,13 @@ server <- function(input, output, session) {
       } else {
         index(index() + 1)
       }
-      ### To Do: clear hints, clear feedback
+      # clear hints, clear feedback
+      lapply(
+        X = 1:nrow(subsetQB()),
+        FUN = function(x){
+      output[[paste0("questionFeedback-", x)]] <- renderIcon()
+      output[[paste0("hintText-", x)]] <- renderUI(NULL)
+        })
     }
   )
   subsetQB <- reactiveVal(0)
@@ -510,6 +553,7 @@ server <- function(input, output, session) {
             lapply(
               X = 1:nrow(subsetQB()),
               FUN = function(x){
+                
                 #### display questions ----
                 tagList(
                   h4(paste('Question ', x)),
@@ -532,6 +576,7 @@ server <- function(input, output, session) {
                     ),
                     status = "game"
                   ),
+                  
                   #### hint button ----
                   fluidRow(
                     column(
@@ -551,6 +596,7 @@ server <- function(input, output, session) {
                     )
                   )
                   ,
+                  
                   #### submitAnswer button ----
                   fluidRow(
                     column(
@@ -607,7 +653,7 @@ server <- function(input, output, session) {
       )
     }
   )
-
+  
   ## Answer checking ----
   sapply(
     X = 1:maxParts,
@@ -629,13 +675,29 @@ server <- function(input, output, session) {
                 yes = "correct",
                 no = "incorrect"
               )
-            )
+            ) 
+            # add score for correct answer 
+            if (input[[paste0("answer-", x)]] == subsetQB()[x, "answer"]) {
+              actionPoints(actionPoints() + 1)
+            }
           }
         }
       )
     }
   )
 
+  # clear questionFeedback when changing choice: 
+  sapply(
+    X = 1:maxParts,
+    FUN = function(x) {
+      observeEvent(
+        eventExpr = input[[paste0("answer-", x)]],
+        handlerExpr = {
+          output[[paste0("questionFeedback-", x)]] <- renderIcon()
+        }
+      )
+    }
+  )
 
   ## Reset Button for all ----
   observeEvent(
@@ -655,7 +717,15 @@ server <- function(input, output, session) {
       )
       #### index change ----
       index(1)
-
+      
+      #### clear questionFeedback ----
+      subsetQB(questionBank[which(questionBank$Index == scenario()[index()]), ])
+      lapply(
+        X = 1:nrow(subsetQB()),
+        FUN = function(x){
+          output[[paste0("questionFeedback-", x)]] <- renderIcon()
+        })
+      
       #### Reset objects and places ----
       places <- objects$name[which(objects$assignable != "no")]
       places <- sample(places, length(places), replace = FALSE)
