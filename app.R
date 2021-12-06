@@ -2,7 +2,7 @@
 library(shiny)
 library(shinydashboard)
 library(shinyBS)
-library(shinyWidgets)
+library(shinyWidgets) 
 library(boastUtils)
 library(shinycssloaders)
 library(plotly)
@@ -265,7 +265,12 @@ ui <- list(
                     condition = ("input.distribution == 'Poisson Distribution'"),
                     p("Poisson Distribution",style = "text-align: center"),
                     plotOutput("poisson", width = "98%")
-                  ) #end of conditionalPanel
+                  ), #end of conditionalPanel
+                  conditionalPanel(
+                    condition = ("input.distribution == 'Exponential Distribution'"),
+                    p("Exponential Distribution",style = "text-align: center"),
+                    plotOutput("exp_plot", width = "98%")
+                  ), #end of conditionalPanel
                 ) #end of column
               ) #fluidRow
               ), #tabPanel
@@ -315,11 +320,50 @@ ui <- list(
                            max = 20,
                            value = 1,
                            step = 0.1
-                         )#end tab of sidebarInput
-                  ), #end of column
-                  p("Gamme Distribution",style = "text-align: center"),
-                  plotOutput("", width = "60%")
-                ) #end of conditionalPanel
+                         ),#end tab of sidebarInput
+                         
+                         sliderInput(
+                           inputId = "theta",
+                           label = "theta",
+                           min = 0,
+                           max = 360,
+                           value = 0,
+                           step = 5,
+                           animate = animationOptions(
+                             interval = 500,
+                             loop = TRUE
+                           )
+                         ),
+                         sliderInput(
+                           inputId = "phi",
+                           label = "phi",
+                           min = 0,
+                           max = 90,
+                           value = 0,
+                           step = 5
+                         )
+                  ) #end of column
+                ),
+                  column(
+                    width = 8,
+                    offset = 0,
+                    # conditional plots
+                    conditionalPanel(
+                      condition = ("input.distribution == 'Gamma Distribution'"),
+                      p("Gamma Distribution",style = "text-align: center"),
+                      plotOutput("gamma_plot"),
+                      div(
+                        style = "text-align: center",
+                        bsButton(
+                          inputId = "go3",
+                          label = "References",
+                          size = "large",
+                          icon = icon("bolt"),
+                          style = "default"
+                        )
+                      )
+                    ) #end of conditionalPanel
+                  ) #end of column
               ) # end of fluidrow
             ) #end of tabPanel
           ) #end of tabsetPanel
@@ -339,6 +383,7 @@ ui <- list(
             consider is to re-create the tools of the Exploration page and then
             a list of questions for the user to then answer.")
         ),
+        
         #### Set up a Game Page ----
         tabItem(
           tabName = "game",
@@ -488,7 +533,7 @@ server <- function(input, output, session) {
     n1 <- length(y1)
     logl <- (log(lambda1) * sum(y1)) - (n1 * lambda1) - sum(lfactorial(y1))
     #logl<- -(sum(y)*log(lambda)-n*lambda)
-    #return(-logl)
+    #return(-logl) 
   }
   
   output$poisson <- renderPlot(
@@ -521,56 +566,86 @@ server <- function(input, output, session) {
     alt = "Maximum Likelihood plot for Poisson"
   )
   
-  ## Example Plot using stat_function ----
-
-  
-  ## Example Plot using stat_function ----
-
-
-  #########Poisson distribution########
 
 
   #########Exponential Distribution########
-
+  expoLik <- function(lambda2,y2){
+    n2 <- length(y2)
+    logl_exp <- (log(lambda2) * n2) - sum(y2) * lambda2
+  }
+  
+  output$exp_plot <- renderPlot(
+    expr = {
+      y2 <- rexp(input$n2,input$l2)
+      ggplot() +
+        xlim(c(0,100)) +
+        stat_function(
+          fun = expoLik,
+          args = list(y2 = y2),
+          color = "blue",
+          size = 2
+        ) +
+        geom_vline(
+          xintercept = input$l2,
+          color = boastPalette[3],
+          size = 1
+        ) +
+        geom_vline(
+          xintercept = mean(y2),
+          color = "black",
+          size = 1,
+          linetype = "dashed"
+        ) +
+        theme_bw()+
+        labs(x = "Lambda", y = "Log-likelihood")
+    },
+    alt = "Maximum Likelihood plot for Exponential"
+  )
 
   ########Gamma Distribution#########
   #Log likelihood function for Gamma Distribution
-
-
-
-  ## Example RGL plot ----
-
+  gamLik <- function(alpha, beta, x) {
+    n <- length(x)
+    alpha <- alpha
+    beta <- beta #seperate inputs
+    sum_x <- sum(x)
+    sum_logx <- sum(log(x))
+    Logl_gamma = vector("numeric", length(beta))
+    for (i in 1:length(beta)) {
+      Logl_gamma[i] = n * alpha[i] * log(beta[i]) + n * lgamma(alpha[i]) + sum_x / beta[i] - (alpha[i] - 1) * sum_logx
+    }
+    #lgamma() gives the natural logarithm of alpha function
+    return(-Logl_gamma)
+  }
+  
+  #####Gamme Plot########
+  output$gamma_plot <- renderPlot(
+    expr = {
+      sampleValues <- rgamma(input$n3, shape = input$a3, rate = input$b3)
+      alphas <- seq(0.01, 20, length = 40)
+      betas <- alphas
+      likelihoods <- outer(
+        X = alphas,
+        Y = betas,
+        FUN = gamLik,
+        x = sampleValues
+      )
       
+      drape.plot(
+        x = alphas,
+        y = betas,
+        z = likelihoods,
+        col = rainbow(50), #rainbow documentation
+        ticktype = "simple",
+        theta = input$theta,
+        phi = input$phi
+      )
+      
+    }
+  )
   
 
-
-
-
-  #else if (input$checkbox1 == "FALSE") {
-    #output$diffValues2 = NULL
-  #}
-  #exponentialLik <- function(lambda,y){
-    #n<-length(y)
-    #n*log(lambda) - lambda * sum(y)
-  #}
-  #y = rexp(input$n,input$l)
-  #lambda = seq(1,50,length.out = input$n)
-  #Output plot
-  #(log(lambda) * sum(x)) - (n * lambda)
-  #lambda <- seq(from = 0.05, to = 10 ,by = 0.05)
-  # Data simulation: Poisson with lambda = 5
-  #y <- rpois(n, lambda1)
-  #values_for_mu<- seq(from=0.05, to = 10 ,by =0.05 )
-  #new loglikelihood (only depends on mu)
-  #Evaluate the loglikelihood at different values of mu
-  #values_log_like <- unlist(lapply(values_for_mu,
-                                   #FUN = log_like_poissson2))
-  #generate a dataframe to ggplot2
-  #df <- data.frame(values_for_mu, values_log_like)
-  # Plot
-
-
-}
+} 
 
 # Boast App Call ----
 boastUtils::boastApp(ui = ui, server = server)
