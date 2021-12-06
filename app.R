@@ -11,7 +11,7 @@ source('coastal-room.R')
 
 # Load Data ----
 roomItems <- read.csv(file = "roomItems.csv", header = TRUE )
-questionBank <- read.csv(file = "MLE_questions2.csv", header = TRUE)
+questionBank <- read.csv(file = "mleQuestions.csv", header = TRUE)
 
 maxParts <- max(table(questionBank$Index))
 
@@ -22,12 +22,12 @@ ui <- list(
     skin = "blue",
     ### Create the app header ----
     dashboardHeader(
-      title = "Stochastic Escape Room",
+      title = "Max Likelihood Est.",
       titleWidth = 250,
       tags$li(class = "dropdown", actionLink("info", icon("info"))),
       tags$li(
         class = "dropdown",
-        boastUtils::surveyLink(name = "Escape_Room_Stochastic_Processes")
+        boastUtils::surveyLink(name = "Maximum_Likelihood_Estimation")
       ),
       tags$li(
         class = "dropdown",
@@ -43,6 +43,7 @@ ui <- list(
         id = "pages",
         menuItem("Overview", tabName = "overview", icon = icon("tachometer-alt")),
         menuItem("Prerequisites", tabName = "prerequisites", icon = icon("book")),
+        menuItem("Explore", tabName = "explore", icon = icon("wpexplorer")),
         menuItem("Escape Room", tabName = "game", icon = icon("gamepad")),
         menuItem("References", tabName = "references", icon = icon("leanpub"))
       ),
@@ -58,8 +59,10 @@ ui <- list(
         tabItem(
           tabName = "overview",
           withMathJax(),
-          h1("Coastal Escape Room for Stochastic Processes"),
-          p("We need to build some overview text."),
+          h1("Maximum Likelihood Estimation"),
+          p("In this app you will explore the maximum likelihood estimation with
+            some plots. You will also test your knowledge with the escape room
+            game."),
           h2("Instructions"),
           tags$ol(
             tags$li("The app works best in a maximized window."),
@@ -78,68 +81,107 @@ ui <- list(
               size = "large"
             )),
           h2("Acknowledgements"),
-          p("This app was originally created by Zeyuan (Primo) Wang with Xigang
-            Zhang supplying original artwork.",
+          p("This app was originally created by Jiayue He and Yudan Zhang.",
             br(),
             br(),
+            "Cite this app as:",
             br(),
-            div(class = "updated", "Last Update: 8/6/2021 by NJH.")
+            boastUtils::citeApp(),
+            br(),
+            br(),
+            div(class = "updated", "Last Update: 12/6/2021 by NJH.")
           )
         ),
         #### Prerequisites Page ----
-        ##### Needs Completion ----
         tabItem(
           tabName = "prerequisites",
           withMathJax(),
-          h2("Prerequisites"),
-          p("The escape room game is a type of game that could be applied in apps
-          for most chapters."),
-          p("To create your own room, you have to figure out the scene, items,
-          relations, and the picture you need."),
-          p("More information would go here.")
+          h2("Background"),
+          p("In order to get the most out of this app, please review the
+            following:"),
+          box(
+            title = strong("What is maximum likelihood estimation?"),
+            status = "primary",
+            collapsible = TRUE,
+            collapsed = FALSE,
+            width = '100%',
+            "Maximum likelihood estimation is a statistical method for
+            estimating the parameters of a model. The parameter values are found
+            such that they maximise the likelihood that the process described
+            by the model produced the data that were actually observed."
+          ),
+          box(
+            title = strong("Simple MLE Procedure"),
+            status = "primary",
+            collapsible = TRUE,
+            collapsed = TRUE,
+            width = '100%',
+            tags$ol(
+              tags$li("An independent and identically distributed sample of data:
+                      \\(y_1,y_2,...,y_N\\)"),
+              tags$li("Assume that the data is generated from some parametric
+                      density function. In particular, let the data be generated
+                      from a known density function (or probability mass
+                      function): \\(y_i \\sim f\\left(y\\big|\\theta\\right)\\)"),
+              tags$li("Exploiting the fact that the data are identically and
+                      independently distributed ('i.i.d.'), you can construct a
+                      likelihood function: \\[L(\\theta) = \\prod^{N}_{i=1}
+                      f\\left(y_i\\big|\\theta\\right)\\\\log(L(\\theta)) =
+                      \\sum^{N}_{i=1} log \\left(f\\left(y_i \\big|\\theta
+                      \\right)\\right)\\]"),
+              tags$li("We use optimization techniques either by hand or using
+                      software such as R to find the value of \\(\\theta\\) which
+                      maximizes the function.")
+            )
+          ),
+          box(
+            title = strong("Invariance Property"),
+            status = "primary",
+            collapsible = TRUE,
+            collapsed = TRUE,
+            width = '100%',
+            p(strong("Theorem: "), "If \\(\\widehat{\\theta}\\) is the maximum
+              likelihood estimator of \\(\\theta\\) and \\(f\\) is a function,
+              then \\(f(\\widehat{\\theta}\\)) is a maximum likelihood estimator
+              of \\(f(\\theta)\\).")
+          ),
+          box(
+            title = strong("Large Sample Property"),
+            status = "primary",
+            collapsible = TRUE,
+            collapsed = TRUE,
+            width = '100%',
+            p("Asymptotic Normality: Let \\(\\ {Y_1,Y_2,...,Y_n} \\) be a 
+              sequence of i.i.d observations where \\(Y_k \\sim f(y|\\theta)\\) 
+              and \\(\\widehat{\\theta}\\) is the MLE of \\(\\theta\\), then
+              \\[\\sqrt{n} \\left(\\widehat{\\theta} - \\theta\\right)
+              \\rightarrow N\\left(0,\\frac{1}{I(\\theta)}\\right)\\]")
+          ),
+          div(
+            style = "text-align: center;",
+            bsButton(
+              inputId = "go2",
+              label = "Explore!",
+              size = "large",
+              icon = icon("bolt"),
+              style = "default"
+            )
+          )
+        ),
+        #### Explore page ----
+        tabItem(
+          tabName =  "explore",
+          withMathJax(),
+          
         ),
         #### Escape Room Page ----
         tabItem(
           tabName = "game",
           withMathJax(),
           h2("Escape from a Coastal Living Room"),
-          br(),
-          h4("Instruction"),
-          p("Please read the instructions for each part to start the game."),
-          box(
-            title = strong("Game Part"),
-            status = "primary",
-            collapsible = TRUE,
-            collapsed = FALSE,
-            width = '100%',
-            tags$ul(
-              tags$li("Use the action points get from the question part to interact 
-                      with the elements of the scene."), 
-              tags$li("Click on different elements and then press the Interact button."), 
-              tags$li("Use the Combine items button to combine the Key and Box found from elements
-                     to obtain the necessary items for escape. 
-                     Only two items allowed each time."),
-              tags$li("Person who finds the exit key will successfully escape.")
-            )
-          ),
-          box(
-            title = strong("Question Part"),
-            status = "primary",
-            collapsible = TRUE,
-            collapsed = FALSE,
-            width = '100%',
-            tags$ul(
-              tags$li("Use the questions below the scene to earn more action points."), 
-              tags$li("There will be several questions for each scenario.
-                     Read the scenario and question to select answer 
-                     and click the Submit answer button for check.
-                     Use the Show hint hutton to get hints for each question."), 
-              tags$li("Use the New Context and Questions button at the bottom 
-                     to get a new scenario when running out of questions."),
-              tags$li("One more action point for every correct answer, 
-                      no points will be deducted for wrong answers.")
-            )
-          ),
+          p("Click on different parts of the scene and click the Interact button
+            to explore the room. To earn more action points, answer the questions
+            below the scene."),
           br(),
           bsButton(
             inputId = "debug",
@@ -572,7 +614,7 @@ server <- function(input, output, session) {
                     individual = FALSE,
                     checkIcon = list(
                       yes = icon("check-square"),
-                      no = icon("square-o")
+                      no = fontawesome::fa(name = "far fa-square")
                     ),
                     status = "game"
                   ),
