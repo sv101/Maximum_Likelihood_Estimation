@@ -20,7 +20,7 @@ poissonLik <- function(lambda, y){
 ### Exponential
 expoLik <- function(lambda, y){
   n <- length(y)
-  return(n * log(1/lambda) - 1/lambda * sum(y))
+  return(n * log(lambda) - lambda * sum(y))
 }
 
 ### Gamma Distribution
@@ -262,8 +262,8 @@ ui <- list(
                     possible value of the parameter (\\(\\lambda\\)) on the
                     horizontal axis, given a data collection. The solid green
                     vertical line represents the true value of the parameter
-                    while the dashed black vertical line represents the sample 
-                    mean of the data collection.")
+                    while the dashed black vertical line represents the estimate
+                    based on the sample data.")
                 ) 
               ) 
             ),
@@ -527,10 +527,12 @@ server <- function(input, output, session) {
   observeEvent(
     eventExpr = c(input$oneParamDist, input$oneParamSize, input$singleParameter),
     handlerExpr = {
-      if (input$oneParamDist == "Poisson Distribution") {
+      if (input$oneParamDist == "Poisson Distribution" &
+          input$singleParameter > 0) {
         oneParamData(rpois(n = input$oneParamSize, lambda = input$singleParameter))
-      } else if (input$oneParamDist == "Exponential Distribution") {
-        oneParamData(rexp(n = input$oneParamSize, rate = 1/input$singleParameter))
+      } else if (input$oneParamDist == "Exponential Distribution" &
+                 input$singleParameter > 0) {
+        oneParamData(rexp(n = input$oneParamSize, rate = input$singleParameter))
       } else {
         print("Error in one parameter data")
       }
@@ -545,8 +547,8 @@ server <- function(input, output, session) {
           message = "Sample size must be greater than zero"
         ),
         need(
-          expr = mean(oneParamData() > 0),
-          message = "Mean not greater than zero"
+          expr = input$singleParameter > 0,
+          message = "True value must be greater than zero"
         )
       )
       ggplot() +
@@ -567,7 +569,11 @@ server <- function(input, output, session) {
           size = 1
         ) +
         geom_vline(
-          xintercept = mean(oneParamData()),
+          xintercept = ifelse(
+            input$oneParamDist == "Poisson Distribution",
+            yes = mean(oneParamData()),
+            no = 1/mean(oneParamData())
+          ),
           color = "black",
           size = 1,
           linetype = "dashed"
@@ -593,18 +599,22 @@ server <- function(input, output, session) {
   )
   
   ### Two parameter case ----
-  ########Gamma Distribution#########
+  ### Currently only for gamma distribution
   twoParamData <- reactiveVal(0)
   observeEvent(
     eventExpr = c(input$twoParamDist, input$twoParamSize,
                   input$twoParamAlpha, input$twoParamBeta),
     handlerExpr = {
-      if (input$twoParamDist == "Gamma Distribution") {
-        twoParamData(rgamma(
-          n = input$twoParamSize,
-          shape = input$twoParamAlpha,
-          rate = input$twoParamBeta
-        ))
+      if (input$twoParamDist == "Gamma Distribution" &
+          input$twoParamAlpha > 0 &
+          input$twoParamBeta > 0) {
+        twoParamData(
+          rgamma(
+            n = input$twoParamSize,
+            shape = input$twoParamAlpha,
+            rate = input$twoParamBeta
+          )
+        )
       } else {
         print("Error in two parameter data")
       }
