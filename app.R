@@ -4,10 +4,39 @@ library(shinydashboard)
 library(shinyBS)
 library(shinyWidgets)
 library(boastUtils)
-library(shinyalert)
+library(ggplot2)
+library(fields)
 
 # Load additional dependencies and setup functions ----
 source('coastal-room.R')
+
+## Likelihood functions ----
+### Poisson function
+poissonLik <- function(lambda, y){
+  n <- length(y)
+  return(-n * lambda - sum(lfactorial(y)) + log(lambda) * sum(y))
+}
+
+### Exponential
+expoLik <- function(lambda, y){
+  n <- length(y)
+  return(n * log(1/lambda) - 1/lambda * sum(y))
+}
+
+### Gamma Distribution
+gamLik <- function(alpha, beta, x) {
+  n <- length(x)
+  alpha <- alpha
+  beta <- beta #seperate inputs
+  sum_x <- sum(x)
+  sum_logx <- sum(log(x))
+  Logl_gamma = vector("numeric", length(beta))
+  for (i in 1:length(beta)) {
+    Logl_gamma[i] = n * alpha[i] * log(beta[i]) + n * lgamma(alpha[i]) + sum_x / beta[i] - (alpha[i] - 1) * sum_logx
+  }
+  #lgamma() gives the natural logarithm of alpha function
+  return(-Logl_gamma)
+}
 
 # Load Data ----
 roomItems <- read.csv(file = "roomItems.csv", header = TRUE )
@@ -64,14 +93,24 @@ ui <- list(
             some plots. You will also test your knowledge with the escape room
             game."),
           h2("Instructions"),
+          h3("Explore Page"),
           tags$ol(
-            tags$li("The app works best in a maximized window."),
-            tags$li("Answer questions to earn action points."),
-            tags$li("Use action points to interact with objects in the scene
-                    and gain items which will be stored in your backpack."),
-            tags$li("Items in the backpack may need to be combined to be useful.
-                    Such as using a key or password to open a box in your backpack.")
+            tags$li("I need a list of instructions")
           ),
+          h3("Escape Room"),
+          tags$ol(
+            tags$li("Move the mouse around the scene to see objects you can
+                    interact with get highlighted. Click on an object and then
+                    press the Interact button. This will use an Action Point."),
+            tags$li("Some objects will have items others may require keys. Found
+                    items will automatically be added to your backpack."),
+            tags$li("You can combine items in your backpack together by selecting
+                    a matching pair and clicking the Combine button."),
+            tags$li("To earn more Action Points, answer the questions below. You
+                    can get new context/scenarios by pressing the button at the
+                    bottom.")
+          ),
+          p("Note: this app tends to work best in a maximzed window."),
           div(
             style = "text-align: center;",
             bsButton(
@@ -81,7 +120,7 @@ ui <- list(
               size = "large"
             )),
           h2("Acknowledgements"),
-          p("This app was originally created by Jiayue He and Yudan Zhang.",
+          p("This app was originally created by Jiayue He and Yudan Zhang in 2021.",
             br(),
             br(),
             "Cite this app as:",
@@ -105,10 +144,10 @@ ui <- list(
             collapsible = TRUE,
             collapsed = FALSE,
             width = '100%',
-            "Maximum likelihood estimation is a statistical method for
-            estimating the parameters of a model. The parameter values are found
-            such that they maximise the likelihood that the process described
-            by the model produced the data that were actually observed."
+            "Maximum likelihood estimation is a statistical method for estimating
+            the parameters of a model. The parameter values are found such that
+            they maximise the likelihood that the process described by the model
+            produced the data that were actually observed."
           ),
           box(
             title = strong("Simple MLE Procedure"),
@@ -172,7 +211,148 @@ ui <- list(
         tabItem(
           tabName =  "explore",
           withMathJax(),
-          
+          h2("Explore Maximum Likelihood Estimation Plots"),
+          p("Select whether you want to estimate one or two parameters and then
+            set options for type of distribution. Adjust the sliders for the
+            sample size and the true values of the parameters to see how the plots
+            change."),
+          br(),
+          tabsetPanel(
+            id = "exp",
+            type = "tabs",
+            ##### One parameter tab ----
+            tabPanel(
+              title = 'One parameter',
+              br(),
+              fluidRow(
+                column(
+                  width = 4,
+                  wellPanel(
+                    selectInput(
+                      inputId = "oneParamDist",
+                      label = "Choose a distribution",
+                      choices = c(
+                        "Poisson Distribution",
+                        "Exponential Distribution"
+                      )
+                    ),
+                    sliderInput(
+                      inputId = "oneParamSize",
+                      label = "Set sample size",
+                      min = 1,
+                      max = 200,
+                      step = 1,
+                      value = 10
+                    ),
+                    sliderInput(
+                      inputId = "singleParameter",
+                      label = "Set true parameter value, \\(\\lambda\\)",
+                      min = 0,
+                      max = 100,
+                      step = 1,
+                      value = 1
+                    )
+                  ) 
+                ),
+                column(
+                  width = 8,
+                  offset = 0,
+                  plotOutput("oneParamPlot"),
+                  p("The blue curve represents the log-likelihood function each 
+                    possible value of the parameter (\\(\\lambda\\)) on the
+                    horizontal axis, given a data collection. The solid green
+                    vertical line represents the true value of the parameter
+                    while the dashed black vertical line represents the sample 
+                    mean of the data collection.")
+                ) 
+              ) 
+            ),
+            ##### Two parameter tab ----
+            tabPanel(
+              title = "Two parameters",
+              br(),
+              fluidRow(
+                column(
+                  width = 4,
+                  wellPanel(
+                    selectInput(
+                      inputId = "twoParamDist",
+                      label = "Select a distribution",
+                      choices = c("Gamma Distribution"),
+                    ),
+                    sliderInput(
+                      inputId = "twoParamSize",
+                      label = "Set sample size",
+                      min = 1,
+                      max = 200,
+                      step = 1,
+                      value = 10
+                    ),
+                    sliderInput(
+                      inputId = "twoParamAlpha",
+                      label = "Set true value for \\(\\alpha\\)",
+                      min = 1,
+                      max = 20,
+                      step = 0.5,
+                      value = 1
+                    ),
+                    sliderInput(
+                      inputId = "twoParamBeta",
+                      label = "Set true value for \\(\\beta\\)",
+                      min = 0.1,
+                      max = 20,
+                      step = 0.1,
+                      value = 1
+                    )
+                  )
+                ),
+                column(
+                  width = 1,
+                  noUiSliderInput(
+                    inputId = "twoParamVertTilt",
+                    label = "Tilt the plot",
+                    min = 0,
+                    max = 90,
+                    step = 5,
+                    value = 0,
+                    orientation = "vertical",
+                    direction = "rtl",
+                    behaviour = "snap",
+                    color = "#009CDE",
+                    height = "300px",
+                    format = wNumbFormat(decimals = 0, suffix = "º")
+                  ),
+                ),
+                column(
+                  width = 7,
+                  plotOutput("twoParamPlot"),
+                  sliderInput(
+                    inputId = "twoParamHorizSpin",
+                    label = "Spin the plot",
+                    min = 0,
+                    max = 360,
+                    step = 1,
+                    value = 180,
+                    width = "100%",
+                    animate = animationOptions(
+                      interval = 500,
+                      loop = TRUE
+                    )
+                  )
+                )
+              ),
+              div(
+                style = "text-align: center;",
+                bsButton(
+                  inputId = "go3",
+                  label = "References",
+                  size = "large",
+                  icon = icon("bolt"),
+                  style = "default"
+                )
+              )
+            ) 
+          ) 
         ),
         #### Escape Room Page ----
         tabItem(
@@ -287,15 +467,6 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
-  ## Debugging ----
-  observeEvent(
-    eventExpr = input$debug,
-    handlerExpr = {
-      print(mapping())
-      actionPoints(10)
-    }
-  )
-
   ## Info button ----
   observeEvent(
     eventExpr = input$info,
@@ -308,8 +479,9 @@ server <- function(input, output, session) {
         type = "info"
       )
     })
-
-  ## Go button ----
+  
+  ## Go button mess-to be fixed ----
+  ### Go button ----
   observeEvent(
     eventExpr = input$go,
     handlerExpr = {
@@ -319,6 +491,171 @@ server <- function(input, output, session) {
         selected = "game"
       )
     })
+  
+  observeEvent(input$go1,{
+    updateTabItems(
+      session = session,
+      inputId = "pages",
+      selected = "prerequisites")
+  })
+  
+  observeEvent(input$go2,{
+    updateTabItems(
+      session = session,
+      inputId = "pages",
+      selected = "explore")
+  })
+  
+  observeEvent(input$go3,{
+    updateTabItems(
+      session = session,
+      inputId = "pages",
+      selected = "references")
+  })
+  
+  observeEvent(input$go4,{
+    updateTabItems(
+      session = session,
+      inputId = "pages",
+      selected = "references")
+  })
+  
+  ## Explore Page Code ----
+  oneParamData <- reactiveVal(0)
+  
+  ### One parameter case ----
+  observeEvent(
+    eventExpr = c(input$oneParamDist, input$oneParamSize, input$singleParameter),
+    handlerExpr = {
+      if (input$oneParamDist == "Poisson Distribution") {
+        oneParamData(rpois(n = input$oneParamSize, lambda = input$singleParameter))
+      } else if (input$oneParamDist == "Exponential Distribution") {
+        oneParamData(rexp(n = input$oneParamSize, rate = 1/input$singleParameter))
+      } else {
+        print("Error in one parameter data")
+      }
+    }
+  )
+  
+  output$oneParamPlot <- renderPlot(
+    expr = {
+      validate(
+        need(
+          expr = input$oneParamSize > 0,
+          message = "Sample size must be greater than zero"
+        ),
+        need(
+          expr = mean(oneParamData() > 0),
+          message = "Mean not greater than zero"
+        )
+      )
+      ggplot() +
+        xlim(c(0, max(100, mean(oneParamData())))) + 
+        stat_function(
+          fun = ifelse(
+            test = input$oneParamDist == "Poisson Distribution",
+            yes = poissonLik,
+            no = expoLik
+          ),
+          args = list(y = oneParamData()),
+          color = "blue",
+          size = 1
+        ) +
+        geom_vline(
+          xintercept = input$singleParameter,
+          color = boastPalette[3],
+          size = 1
+        ) +
+        geom_vline(
+          xintercept = mean(oneParamData()),
+          color = "black",
+          size = 1,
+          linetype = "dashed"
+        ) +
+        theme_bw() +
+        theme(
+          text = element_text(size = 18)
+        ) +
+        ylab("Log-likelihood") +
+        xlab("Lambda") +
+        labs(
+          title = paste(
+            "Maximum Likelihood Plot for",
+            input$oneParamDist
+          )
+        )
+    },
+    alt = reactive(
+      paste("Log-likelihood plot for the", input$oneParamDist, "the dashed 
+            vertical line shows the value of the sample mean while the green
+            vertical line shows the true value of the parameter from the slider.")
+    )
+  )
+  
+  ### Two parameter case ----
+  ########Gamma Distribution#########
+  twoParamData <- reactiveVal(0)
+  observeEvent(
+    eventExpr = c(input$twoParamDist, input$twoParamSize,
+                  input$twoParamAlpha, input$twoParamBeta),
+    handlerExpr = {
+      if (input$twoParamDist == "Gamma Distribution") {
+        twoParamData(rgamma(
+          n = input$twoParamSize,
+          shape = input$twoParamAlpha,
+          rate = input$twoParamBeta
+        ))
+      } else {
+        print("Error in two parameter data")
+      }
+    }
+  )
+  
+  observeEvent(
+    eventExpr = twoParamData(),
+    handlerExpr = {
+      alphas <- seq(0.01, 20, length = 40)
+      betas <- alphas
+      likelihoods <- outer(
+        X = alphas,
+        Y = betas,
+        FUN = gamLik,
+        x = twoParamData()
+      )
+      output$twoParamPlot <- renderPlot(
+        expr = {
+          validate(
+            need(
+              expr = input$twoParamSize > 0,
+              message = "Sample size must be greater than zero"
+            )
+          )
+          fields::drape.plot(
+            x = alphas,
+            y = betas,
+            z = likelihoods,
+            col = rainbow(50), #rainbow documentation
+            ticktype = "simple",
+            theta = input$twoParamHorizSpin,
+            phi = input$twoParamVertTilt,
+            xlab = "Alpha parameter",
+            ylab = "Beta parameter",
+            zlab = "Log-likelihood"
+          )
+        }
+      )
+    }
+  )
+  
+  ## Escape Room Code ----
+  ## Debugging ----
+  observeEvent(
+    eventExpr = input$debug,
+    handlerExpr = {
+      print(mapping())
+      actionPoints(10)
+    }
+  )
 
   ## User/game reactive variables ----
   gameInProgress <- reactiveVal(FALSE)
