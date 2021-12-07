@@ -95,7 +95,10 @@ ui <- list(
           h2("Instructions"),
           h3("Explore Page"),
           tags$ol(
-            tags$li("I need a list of instructions")
+            tags$li("Choose to explore plots for either one or two parameters."),
+            tags$li("Then choose which distribution you want to explore."),
+            tags$li("Examine the plots and see what happens when you change the 
+                    sample size and the true parameter value.")
           ),
           h3("Escape Room"),
           tags$ol(
@@ -258,7 +261,7 @@ ui <- list(
                   width = 8,
                   offset = 0,
                   plotOutput("oneParamPlot"),
-                  p("The blue curve represents the log-likelihood function each 
+                  p("The blue curve represents the log-likelihood function at each 
                     possible value of the parameter (\\(\\lambda\\)) on the
                     horizontal axis, given a data collection. The solid green
                     vertical line represents the true value of the parameter
@@ -338,20 +341,28 @@ ui <- list(
                       interval = 500,
                       loop = TRUE
                     )
-                  )
-                )
-              ),
-              div(
-                style = "text-align: center;",
-                bsButton(
-                  inputId = "go3",
-                  label = "References",
-                  size = "large",
-                  icon = icon("bolt"),
-                  style = "default"
+                  ),
+                  p("This plot shows the log-likelihood of values for the alpha
+                    parameter and the beta parameter, given sample data. The log-
+                    likelihood values appear on the vertical axis and as the
+                    coloring of the surface. You can use the spin slider to
+                    rotate the plot horizontally (left and right) and the tilt
+                    slider to rotate the plot vertically (top to bottom).")
                 )
               )
             ) 
+          ),
+          br(),
+          br(),
+          div(
+            style = "text-align: center;",
+            bsButton(
+              inputId = "go3",
+              label = "Escape Room",
+              size = "large",
+              icon = icon("bolt"),
+              style = "default"
+            )
           ) 
         ),
         #### Escape Room Page ----
@@ -447,13 +458,48 @@ ui <- list(
           tabName = "references",
           withMathJax(),
           h2("References"),
-          p("You'll need to fill in this page with all of the appropriate
-            references for your app."),
           p(
             class = "hangingindent",
-            "Bailey, E. (2015). shinyBS: Twitter bootstrap components for shiny.
+            "Bailey, E. (2015), shinyBS: Twitter bootstrap components for shiny.
             (v0.61). [R package]. Available from
             https://CRAN.R-project.org/package=shinyBS"
+          ),
+          p(
+            class = "hangingindent",
+            "Carey, R. and Hatfield, N. (2021), boastUtils: BOAST Utilities.
+            (v. 0.1.11.1), [R package]. Available from 
+            https://github.com/EducationShinyAppTeam/boastUtils"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W. and Borges Ribeiro, B. (2021). shinydashboard: Create 
+            dashboards with ‘Shiny’. (v. 0.7.2) [R package]. Available from
+            https://CRAN.R-project.org/package=shinydashboard"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W., Cheng, J., Allaire, J., Sievert, C., Schloerke, B., Xie, Y.,
+            Allen, J., McPherson, J., Dipert, A., and Borges, B. (2021). shiny:
+            Web application framework for R. (v. 1.7.1) [R package]. Available
+            from https://CRAN.R-project.org/package=shiny"
+          ),
+          p(
+            class = "hangingindent",
+            "Nychka, D., Furrer, R., Paige, J., and Sain, S. (2021). fields: Tools
+            for spatial data (v. 13.3) [R package]. Available from 
+            https://github.com/dnychka/fieldsRPackage"
+          ),
+          p(
+            class = "hangingindent",
+            "Perrier, V., Meyer, F., and Granjon, D. (2021). shinyWidgets: Custom
+            inputs widgets for shiny (v. 0.6.2). [R package]. Available from
+            https://CRAN.R-project.org/package=shinyWidgets"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, W. (2016), ggplot2: Elegant graphics for data analysis,
+            R Package. Springer-Verlag New York. Available from
+            https://ggplot2.tidyverse.org"
           ),
           br(),
           br(),
@@ -468,14 +514,24 @@ ui <- list(
 # Define server logic ----
 server <- function(input, output, session) {
   ## Info button ----
+  # boastInfoButton(messages = messageList)
   observeEvent(
     eventExpr = input$info,
     handlerExpr = {
+      messageText <- switch(
+        EXPR = input$pages,
+        overview = "overview info",
+        prerequisites = "prereq info",
+        explore = "Explore the log-likelihood plot for different distributions.
+            See what happens when you change the sample size and the true value.",
+        game = "Click on different parts of the scene to interact. Answer
+        questions to earn more action points.",
+        references = "reference info"
+      )
       sendSweetAlert(
         session = session,
         title = "Instructions",
-        text = "Click on different parts of the scene to interact. Answer
-        questions to earn more action points.",
+        text = messageText,
         type = "info"
       )
     })
@@ -552,7 +608,8 @@ server <- function(input, output, session) {
         )
       )
       ggplot() +
-        xlim(c(0, max(100, mean(oneParamData())))) + 
+        xlim(c(0, max(100, mean(oneParamData()),
+                      input$singleParameter, 1/mean(oneParamData())))) + 
         stat_function(
           fun = ifelse(
             test = input$oneParamDist == "Poisson Distribution",
