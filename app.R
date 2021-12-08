@@ -46,10 +46,9 @@ maxParts <- max(table(questionBank$Index))
 
 # Define UI for App ----
 ui <- list(
-  ## Create the app page ----
   dashboardPage(
     skin = "blue",
-    ### Create the app header ----
+    ## Header ----
     dashboardHeader(
       title = "Max Likelihood Est.",
       titleWidth = 250,
@@ -65,7 +64,7 @@ ui <- list(
         )
       )
     ),
-    ### Create the sidebar/left navigation menu ----
+    ## Sidebar ----
     dashboardSidebar(
       width = 250,
       sidebarMenu(
@@ -81,10 +80,10 @@ ui <- list(
         boastUtils::sidebarFooter()
       )
     ),
-    ### Create the content ----
+    ## Body ----
     dashboardBody(
       tabItems(
-        #### Overview Page ----
+        ### Overview Page ----
         tabItem(
           tabName = "overview",
           withMathJax(),
@@ -97,7 +96,7 @@ ui <- list(
           tags$ol(
             tags$li("Choose to explore plots for either one or two parameters."),
             tags$li("Then choose which distribution you want to explore."),
-            tags$li("Examine the plots and see what happens when you change the 
+            tags$li("Examine the plots and see what happens when you change the
                     sample size and the true parameter value.")
           ),
           h3("Escape Room"),
@@ -117,9 +116,9 @@ ui <- list(
           div(
             style = "text-align: center;",
             bsButton(
-              inputId = "go",
-              label = "Go",
-              icon = icon("bolt"),
+              inputId = "go1",
+              label = "Prerequisites",
+              icon = icon("book"),
               size = "large"
             )),
           h2("Acknowledgements"),
@@ -131,10 +130,10 @@ ui <- list(
             boastUtils::citeApp(),
             br(),
             br(),
-            div(class = "updated", "Last Update: 12/6/2021 by NJH.")
+            div(class = "updated", "Last Update: 12/7/2021 by NJH.")
           )
         ),
-        #### Prerequisites Page ----
+        ### Prerequisites Page ----
         tabItem(
           tabName = "prerequisites",
           withMathJax(),
@@ -193,8 +192,8 @@ ui <- list(
             collapsible = TRUE,
             collapsed = TRUE,
             width = '100%',
-            p("Asymptotic Normality: Let \\(\\ {Y_1,Y_2,...,Y_n} \\) be a 
-              sequence of i.i.d observations where \\(Y_k \\sim f(y|\\theta)\\) 
+            p("Asymptotic Normality: Let \\(\\ {Y_1,Y_2,...,Y_n} \\) be a
+              sequence of i.i.d observations where \\(Y_k \\sim f(y|\\theta)\\)
               and \\(\\widehat{\\theta}\\) is the MLE of \\(\\theta\\), then
               \\[\\sqrt{n} \\left(\\widehat{\\theta} - \\theta\\right)
               \\rightarrow N\\left(0,\\frac{1}{I(\\theta)}\\right)\\]")
@@ -203,14 +202,14 @@ ui <- list(
             style = "text-align: center;",
             bsButton(
               inputId = "go2",
-              label = "Explore!",
+              label = "Explore",
               size = "large",
               icon = icon("bolt"),
               style = "default"
             )
           )
         ),
-        #### Explore page ----
+        ### Explore page ----
         tabItem(
           tabName =  "explore",
           withMathJax(),
@@ -223,7 +222,7 @@ ui <- list(
           tabsetPanel(
             id = "exp",
             type = "tabs",
-            ##### One parameter tab ----
+            #### One parameter tab ----
             tabPanel(
               title = 'One parameter',
               br(),
@@ -255,22 +254,22 @@ ui <- list(
                       step = 1,
                       value = 1
                     )
-                  ) 
+                  )
                 ),
                 column(
                   width = 8,
                   offset = 0,
                   plotOutput("oneParamPlot"),
-                  p("The blue curve represents the log-likelihood function at each 
+                  p("The blue curve represents the log-likelihood function at each
                     possible value of the parameter (\\(\\lambda\\)) on the
                     horizontal axis, given a data collection. The solid green
                     vertical line represents the true value of the parameter
                     while the dashed black vertical line represents the estimate
                     based on the sample data.")
-                ) 
-              ) 
+                )
+              )
             ),
-            ##### Two parameter tab ----
+            #### Two parameter tab ----
             tabPanel(
               title = "Two parameters",
               br(),
@@ -350,7 +349,7 @@ ui <- list(
                     slider to rotate the plot vertically (top to bottom).")
                 )
               )
-            ) 
+            )
           ),
           br(),
           br(),
@@ -363,9 +362,9 @@ ui <- list(
               icon = icon("bolt"),
               style = "default"
             )
-          ) 
+          )
         ),
-        #### Escape Room Page ----
+        ### Escape Room Page ----
         tabItem(
           tabName = "game",
           withMathJax(),
@@ -374,12 +373,6 @@ ui <- list(
             to explore the room. To earn more action points, answer the questions
             below the scene."),
           br(),
-          bsButton(
-            inputId = "debug",
-            label = "debug",
-            icon = icon("bug"),
-            size = "large"
-          ),
           fluidRow(
             column(
               width = 7,
@@ -392,7 +385,7 @@ ui <- list(
                 })"
               ))
             ),
-            ##### Scene Info Column ----
+            #### Scene Info Column ----
             column(
               width = 5,
               uiOutput("clickedObject", class = "largerFont"),
@@ -442,7 +435,7 @@ ui <- list(
           hr(),
           h3("Earn Action Points"),
           p("Use the context to answer questions to earn more action points."),
-          ##### Questions and Answers area ----
+          #### Questions and Answers area ----
           uiOutput("questionAnswer"),
           br(),
           bsButton(
@@ -452,8 +445,7 @@ ui <- list(
             size = "large"
           )
         ),
-        #### Set up the References Page ----
-        ##### Needs Completing ----
+        ### Set up the References Page ----
         tabItem(
           tabName = "references",
           withMathJax(),
@@ -467,12 +459,12 @@ ui <- list(
           p(
             class = "hangingindent",
             "Carey, R. and Hatfield, N. (2021), boastUtils: BOAST Utilities.
-            (v. 0.1.11.1), [R package]. Available from 
+            (v. 0.1.11.1), [R package]. Available from
             https://github.com/EducationShinyAppTeam/boastUtils"
           ),
           p(
             class = "hangingindent",
-            "Chang, W. and Borges Ribeiro, B. (2021). shinydashboard: Create 
+            "Chang, W. and Borges Ribeiro, B. (2021). shinydashboard: Create
             dashboards with ‘Shiny’. (v. 0.7.2) [R package]. Available from
             https://CRAN.R-project.org/package=shinydashboard"
           ),
@@ -486,7 +478,7 @@ ui <- list(
           p(
             class = "hangingindent",
             "Nychka, D., Furrer, R., Paige, J., and Sain, S. (2021). fields: Tools
-            for spatial data (v. 13.3) [R package]. Available from 
+            for spatial data (v. 13.3) [R package]. Available from
             https://github.com/dnychka/fieldsRPackage"
           ),
           p(
@@ -514,19 +506,21 @@ ui <- list(
 # Define server logic ----
 server <- function(input, output, session) {
   ## Info button ----
-  # boastInfoButton(messages = messageList)
   observeEvent(
     eventExpr = input$info,
     handlerExpr = {
       messageText <- switch(
         EXPR = input$pages,
-        overview = "overview info",
-        prerequisites = "prereq info",
+        overview = "Use this app to explore maximum likelihood plots and to test
+            your knowledge with an escape room.",
+        prerequisites = "Use this app to explore maximum likelihood plots and to test
+            your knowledge with an escape room.",
         explore = "Explore the log-likelihood plot for different distributions.
             See what happens when you change the sample size and the true value.",
         game = "Click on different parts of the scene to interact. Answer
         questions to earn more action points.",
-        references = "reference info"
+        references = "Use this app to explore maximum likelihood plots and to test
+            your knowledge with an escape room."
       )
       sendSweetAlert(
         session = session,
@@ -535,50 +529,44 @@ server <- function(input, output, session) {
         type = "info"
       )
     })
-  
-  ## Go button mess-to be fixed ----
-  ### Go button ----
+
+  ## Go buttons ----
   observeEvent(
-    eventExpr = input$go,
+    eventExpr = input$go1,
+    handlerExpr = {
+      updateTabItems(
+        session = session,
+        inputId = "pages",
+        selected = "prerequisites"
+      )
+    }
+  )
+
+  observeEvent(
+    eventExpr = input$go2,
+    handlerExpr = {
+      updateTabItems(
+        session = session,
+        inputId = "pages",
+        selected = "explore"
+      )
+    }
+  )
+
+  observeEvent(
+    eventExpr = input$go3,
     handlerExpr = {
       updateTabItems(
         session = session,
         inputId = "pages",
         selected = "game"
       )
-    })
-  
-  observeEvent(input$go1,{
-    updateTabItems(
-      session = session,
-      inputId = "pages",
-      selected = "prerequisites")
-  })
-  
-  observeEvent(input$go2,{
-    updateTabItems(
-      session = session,
-      inputId = "pages",
-      selected = "explore")
-  })
-  
-  observeEvent(input$go3,{
-    updateTabItems(
-      session = session,
-      inputId = "pages",
-      selected = "references")
-  })
-  
-  observeEvent(input$go4,{
-    updateTabItems(
-      session = session,
-      inputId = "pages",
-      selected = "references")
-  })
-  
+    }
+  )
+
   ## Explore Page Code ----
   oneParamData <- reactiveVal(0)
-  
+
   ### One parameter case ----
   observeEvent(
     eventExpr = c(input$oneParamDist, input$oneParamSize, input$singleParameter),
@@ -594,7 +582,7 @@ server <- function(input, output, session) {
       }
     }
   )
-  
+
   output$oneParamPlot <- renderPlot(
     expr = {
       validate(
@@ -609,7 +597,7 @@ server <- function(input, output, session) {
       )
       ggplot() +
         xlim(c(0, max(100, mean(oneParamData()),
-                      input$singleParameter, 1/mean(oneParamData())))) + 
+                      input$singleParameter, 1/mean(oneParamData())))) +
         stat_function(
           fun = ifelse(
             test = input$oneParamDist == "Poisson Distribution",
@@ -649,12 +637,12 @@ server <- function(input, output, session) {
         )
     },
     alt = reactive(
-      paste("Log-likelihood plot for the", input$oneParamDist, "the dashed 
+      paste("Log-likelihood plot for the", input$oneParamDist, "the dashed
             vertical line shows the value of the sample mean while the green
             vertical line shows the true value of the parameter from the slider.")
     )
   )
-  
+
   ### Two parameter case ----
   ### Currently only for gamma distribution
   twoParamData <- reactiveVal(0)
@@ -677,7 +665,7 @@ server <- function(input, output, session) {
       }
     }
   )
-  
+
   observeEvent(
     eventExpr = twoParamData(),
     handlerExpr = {
@@ -709,11 +697,17 @@ server <- function(input, output, session) {
             ylab = "Beta parameter",
             zlab = "Log-likelihood"
           )
-        }
+        },
+        alt = reactive(
+          paste("Log-likelihood plot for the", input$twoParamDist, "with the
+                alpha and beta parameters forming two of the axes and the
+                log-likelihood of those alpha and beta values given data the
+                vertical axis and coloring.")
+        )
       )
     }
   )
-  
+
   ## Escape Room Code ----
   ## Debugging ----
   observeEvent(
@@ -942,8 +936,8 @@ server <- function(input, output, session) {
 
   # create shuffled index vector:
   scenario <- reactiveVal(
-    sample(x = 1:max(questionBank$Index), 
-           size = max(questionBank$Index), 
+    sample(x = 1:max(questionBank$Index),
+           size = max(questionBank$Index),
            replace = F)
   )
 
@@ -999,7 +993,7 @@ server <- function(input, output, session) {
             lapply(
               X = 1:nrow(subsetQB()),
               FUN = function(x){
-                
+
                 #### display questions ----
                 tagList(
                   h4(paste('Question ', x)),
@@ -1022,7 +1016,7 @@ server <- function(input, output, session) {
                     ),
                     status = "game"
                   ),
-                  
+
                   #### hint button ----
                   fluidRow(
                     column(
@@ -1042,7 +1036,7 @@ server <- function(input, output, session) {
                     )
                   )
                   ,
-                  
+
                   #### submitAnswer button ----
                   fluidRow(
                     column(
@@ -1099,7 +1093,7 @@ server <- function(input, output, session) {
       )
     }
   )
-  
+
   ## Answer checking ----
   sapply(
     X = 1:maxParts,
@@ -1121,8 +1115,8 @@ server <- function(input, output, session) {
                 yes = "correct",
                 no = "incorrect"
               )
-            ) 
-            # add score for correct answer 
+            )
+            # add score for correct answer
             if (input[[paste0("answer-", x)]] == subsetQB()[x, "answer"]) {
               actionPoints(actionPoints() + 1)
             }
@@ -1132,7 +1126,7 @@ server <- function(input, output, session) {
     }
   )
 
-  # clear questionFeedback when changing choice: 
+  # clear questionFeedback when changing choice:
   sapply(
     X = 1:maxParts,
     FUN = function(x) {
@@ -1163,7 +1157,7 @@ server <- function(input, output, session) {
       )
       #### index change ----
       index(1)
-      
+
       #### clear questionFeedback ----
       subsetQB(questionBank[which(questionBank$Index == scenario()[index()]), ])
       lapply(
@@ -1171,7 +1165,7 @@ server <- function(input, output, session) {
         FUN = function(x){
           output[[paste0("questionFeedback-", x)]] <- renderIcon()
         })
-      
+
       #### Reset objects and places ----
       places <- objects$name[which(objects$assignable != "no")]
       places <- sample(places, length(places), replace = FALSE)

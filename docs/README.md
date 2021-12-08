@@ -6,4 +6,4 @@
 
 ![App Screenshot](/docs/screenshot.png)
 
-APP_DESCRIPTION
+This app introduces the concept of Maximum Likelihood Estimation using interactive Log-likelihood plots of different distribution, and MLE-based questions in the escape room game.

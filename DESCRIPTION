@@ -9,7 +9,7 @@ Authors@R: c(
     person(given = "Neil", family = "Hatfield", email = "neil.hatfield@psu.edu", role = c("aut"))
   )
 Chapter: Chapter 5 Probability
-Description: This app is focused on the common types of xyz.
+Description: This app introduces the concept of Maximum Likelihood Estimation using interactive Log-likelihood plots of different distribution, and MLE-based questions in the escape room game.
 LearningObjectives: c(
     "The student will learn to understand Concept A in way z.",
     "The student will learn to understand Concept B as description y."
