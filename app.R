@@ -369,82 +369,93 @@ ui <- list(
           tabName = "game",
           withMathJax(),
           h2("Escape from a Coastal Living Room"),
-          p("Click on different parts of the scene and click the Interact button
-            to explore the room. To earn more action points, answer the questions
-            below the scene."),
-          br(),
-          fluidRow(
-            column(
-              width = 7,
-              offset = 0,
-              coastalRoom,
-              tags$script(HTML(
-                "document.getElementById('coastalRoom').focus();
-                $('#objects').on('click', '.scene-object', (ev) => {
-                  Shiny.setInputValue('object', ev.target.id);
-                })"
-              ))
-            ),
-            #### Scene Info Column ----
-            column(
-              width = 5,
-              uiOutput("clickedObject", class = "largerFont"),
-              bsButton(
-                inputId = "interactObject",
-                label = "Interact with object",
-                icon = icon("hand-point-up"),
-                size = "large",
-                style = "success",
-                disabled = TRUE
+          fluidPage(
+            tabsetPanel(
+              tabPanel(
+                title = "Escape Room",
+                p("Click on different parts of the scene and click the 
+                  Interact button to explore the room. To earn more action points, 
+                  answer the questions below the scene."),
+                br(),
+                fluidRow(
+                  column(
+                    width = 7,
+                    offset = 0,
+                    coastalRoom,
+                    tags$script(HTML(
+                      "document.getElementById('coastalRoom').focus();
+                      $('#objects').on('click', '.scene-object', (ev) => {
+                      Shiny.setInputValue('object', ev.target.id);
+                      })"
+                    ))
+                  ),
+                  #### Scene Info Column ----
+                  column(
+                    width = 5,
+                    uiOutput("clickedObject", class = "largerFont"),
+                    bsButton(
+                      inputId = "interactObject",
+                      label = "Interact with object",
+                      icon = icon("hand-point-up"),
+                      size = "large",
+                      style = "success",
+                      disabled = TRUE
+                    ),
+                    br(),
+                    br(),
+                    uiOutput("actionPointReport", class = "largerFont"),
+                    p("Out of action points? Answer questions below to gain action
+                      points to interact with the scene and objects."),
+                    hr(),
+                    h3("Collected Items"),
+                    p("Your backpack contains:"),
+                    uiOutput("backpackContents"),
+                    h4("Combine Items"),
+                    p("Select two items from your backpack to use an action 
+                      point to combine."),
+                    selectInput(
+                      inputId = "selectedItems",
+                      label = "Items to combine",
+                      choices = "nothing",
+                      selected = NULL,
+                      multiple = TRUE
+                      ),
+                    bsButton(
+                      inputId = "combineItems",
+                      label = "Combine items",
+                      icon = icon("object-group"),
+                      style = "warning",
+                      size = "large"
+                      ),
+                    hr(),
+                    bsButton(
+                      inputId = "resetGame",
+                      label = "Reset Game",
+                      style = "danger",
+                      size = "large"
+                    )
+                  )
+                )
               ),
-              br(),
-              br(),
-              uiOutput("actionPointReport", class = "largerFont"),
-              p("Out of action points? Answer questions below to gain action
-                points to interact with the scene and objects."),
-              hr(),
-              h3("Collected Items"),
-              p("Your backpack contains:"),
-              uiOutput("backpackContents"),
-              h4("Combine Items"),
-              p("Select two items from your backpack to use an action point to
-                combine."),
-              selectInput(
-                inputId = "selectedItems",
-                label = "Items to combine",
-                choices = "nothing",
-                selected = NULL,
-                multiple = TRUE
-              ),
-              bsButton(
-                inputId = "combineItems",
-                label = "Combine items",
-                icon = icon("object-group"),
-                style = "warning",
-                size = "large"
-              ),
-              hr(),
-              bsButton(
-                inputId = "resetGame",
-                label = "Reset Game",
-                style = "danger",
-                size = "large"
+              tabPanel(
+                title = "Earn Points",
+                br(),
+                h3("Earn Action Points"),
+                p("Use the context to answer questions to earn more action points."),
+                #### Questions and Answers area ----
+                uiOutput("questionAnswer"),
+                br(),
+                bsButton(
+                  inputId = 'nextQuestion',
+                  label = "New Context and Questions",
+                  style = "warning",
+                  size = "large"
+                )
               )
             )
-          ),
-          hr(),
-          h3("Earn Action Points"),
-          p("Use the context to answer questions to earn more action points."),
-          #### Questions and Answers area ----
-          uiOutput("questionAnswer"),
-          br(),
-          bsButton(
-            inputId = 'nextQuestion',
-            label = "New Context and Questions",
-            style = "warning",
-            size = "large"
           )
-        ),
+        ),  
+        
         ### Set up the References Page ----
         tabItem(
           tabName = "references",
